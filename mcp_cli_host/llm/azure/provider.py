@@ -61,12 +61,14 @@ class Azure(Provider):
                 tools=opeanpi_tools,
                 tool_choice="auto"
             )
+
         except RateLimitError as e:
             logger.warning(f"OpenAI API request exceeded rate limit, please try later: {e}")
         except Exception as e:
             if "maximum context length" in str(e):
                 logger.warning(f"llm hit its maximum context length: {e}")
             else:
-                raise
+                raise e
 
-        return azureMsg(message_content=json.dumps(completion.choices[0].message.to_dict())) if completion else None
+        return azureMsg(message_content=json.dumps(completion.choices[0].message.to_dict()),
+                        token_usage=completion.usage) if completion else None

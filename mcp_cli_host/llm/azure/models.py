@@ -24,5 +24,5 @@ class azureMsg(GenericMsg):
         return tool_calls
 
     @property  
-    def usage(self) -> dict[str, str]:
-        pass
+    def usage(self) -> list[int]:
+        return [self.token_usage.prompt_tokens, self.token_usage.completion_tokens]

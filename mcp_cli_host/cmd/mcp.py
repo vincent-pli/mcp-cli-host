@@ -10,7 +10,7 @@ import shutil
 import logging
 
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 async def message_handler(
     message: RequestResponder[types.ServerRequest, types.ClientResult]
@@ -19,7 +19,7 @@ async def message_handler(
     | str
 ) -> None:
     if isinstance(message, Exception):
-        logger.error("Error: %s", message)
+        log.error("Error: %s", message)
         return
 
     # logger.info("Received message from server: %s", message)
@@ -60,7 +60,7 @@ class Server:
 
             self.session = session
         except Exception as e:
-            logging.error(f"Error initializing server {self.name}: {e}")
+            log.error(f"Error initializing server {self.name}: {e}")
             await self.cleanup()
             raise
 
@@ -117,21 +117,21 @@ class Server:
         attempt = 0
         while attempt < retries:
             try:
-                logging.info(f"Executing {tool_name}...")
+                log.info(f":🔧:Executing tool: [{tool_name}]...")
                 result: types.CallToolResult = await self.session.call_tool(tool_name, arguments)
 
                 return result
 
             except Exception as e:
                 attempt += 1
-                logging.warning(
+                log.warning(
                     f"Error executing tool: {e}. Attempt {attempt} of {retries}."
                 )
                 if attempt < retries:
-                    logging.info(f"Retrying in {delay} seconds...")
+                    log.info(f"Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
-                    logging.error("Max retries reached. Failing.")
+                    log.error("Max retries reached. Failing.")
                     raise
 
     async def cleanup(self) -> None:
@@ -142,7 +142,8 @@ class Server:
                 self.session = None
                 self.stdio_context = None
             except Exception as e:
-                logging.error(f"Error during cleanup of server {self.name}: {e}")
+                log.error(f"Error during cleanup of server {self.name}: {e}")
+                raise
 
 
 def load_mcp_config(server_conf_path: str = None) -> dict[str, StdioServerParameters]:

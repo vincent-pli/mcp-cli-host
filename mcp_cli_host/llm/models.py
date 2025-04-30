@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Literal
 from enum import Enum
-from typing import Union, Any
+from typing import Union, Any, Optional
 from abc import ABC
 import json
 from mcp import types
@@ -29,6 +29,7 @@ class CallToolResultWithID(BaseModel):
 class GenericMsg(BaseModel, ABC):
     # json str, a whole message responsed by llm
     message_content: Union[str, list[CallToolResultWithID]]
+    token_usage: Optional[Any] = None
 
     @property
     def content(self) -> str:
@@ -39,7 +40,7 @@ class GenericMsg(BaseModel, ABC):
         pass
 
     @property
-    def usage(self) -> dict[str, str]:
+    def usage(self) -> list[int]:
         pass
     
     def to_json(self):
