@@ -1,4 +1,6 @@
 from mcp_cli_host.llm.azure.provider import Azure
+from mcp_cli_host.llm.openai.provider import Openai
+from mcp_cli_host.llm.deepseek.provider import Deepseek
 from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
@@ -165,7 +167,7 @@ class ChatSession:
             log.info(f"Shutting down MCP server: [{name}]")
             await server.cleanup()
 
-    def create_provider(self) -> Provider:
+    def create_provider(self, base_url: str = None) -> Provider:
         if ":" not in self.model:
             raise ValueError("Invalid format! Expected format is 'a:b'")
 
@@ -177,8 +179,16 @@ class ChatSession:
             if api_key == "":
                 raise ValueError(
                     'Environment variable OPENAI_API_KEY not found or its value is empty.')
-            return None  # TODO
-
+            
+            return Openai(model=model, base_url=base_url)  # TODO
+        
+        elif provider == "deepseek":
+            api_key = os.environ.get('OPENAI_API_KEY', '')
+            if api_key == "":
+                raise ValueError(
+                    'Environment variable OPENAI_API_KEY not found or its value is empty.')
+            
+            return Deepseek(model=model, base_url=base_url)  # TODO
         elif provider == "azure":
             azure_deploy = os.environ.get('AZURE_OPENAI_DEPLOYMENT', '')
             azure_api_key = os.environ.get('AZURE_OPENAI_API_KEY', '')
@@ -199,7 +209,7 @@ class ChatSession:
 
     async def run_mcp_host(self):
         # use register to supply the provider TODO
-        provider = self.create_provider()
+        provider = self.create_provider(base_url=self.openai_url)
 
         mcpserver_confs: dict[str, StdioServerParameters] = load_mcp_config(
             server_conf_path=self.server_conf_path)
@@ -275,7 +285,7 @@ async def main() -> None:
                         help="base URL for OpenAI API (defaults to api.openai.com)")
     args = parser.parse_args()
 
-    rich_handler = RichHandler(show_path=False, show_time=False, omit_repeated_times=False, show_level=True, highlighter=NullHighlighter())
+    rich_handler = RichHandler(show_path=False, show_time=False, omit_repeated_times=False, show_level=True, highlighter=NullHighlighter(), rich_tracebacks=True)
     if args.debug:
         FORMAT = "%(asctime)s <%(filename)s:%(lineno)d> %(message)s"
         rich_handler.setFormatter(logging.Formatter(FORMAT))
@@ -298,6 +308,7 @@ async def main() -> None:
         await chat_session.run_mcp_host()
     except Exception as e:
         log.error(f"{e}")
+        log.exception(e)
         parser.print_help()
 
 
