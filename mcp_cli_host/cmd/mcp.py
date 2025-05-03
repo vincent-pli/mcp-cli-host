@@ -10,7 +10,7 @@ import shutil
 import logging
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("mcp_cli_host")
 
 async def message_handler(
     message: RequestResponder[types.ServerRequest, types.ClientResult]
@@ -21,16 +21,10 @@ async def message_handler(
     if isinstance(message, Exception):
         log.error("Error: %s", message)
         return
-
-    # logger.info("Received message from server: %s", message)
-
-
-class CustomErrLog():
-    def write(self, msg: str):
-        print(f"Error log from server side: {msg}")
-
-    def fileno(self):
-        return sys.stderr.fileno()
+    if isinstance(message, types.ServerNotification):
+        if isinstance(message.root, types.LoggingMessageNotification):
+            message_obj: types.LoggingMessageNotification = message.root
+            log.debug("📩 Received message from server: %s", message_obj.params.data)
     
 class Server:
     """Manages MCP server connections and tool execution."""
@@ -43,12 +37,13 @@ class Server:
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.exit_stack: AsyncExitStack = AsyncExitStack()
 
-    async def initialize(self) -> None:
+    async def initialize(self, debug_model: bool = False) -> None:
         """Initialize the server connection."""
-        errlog = CustomErrLog()  # further check TODO
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
-                stdio_client(self.config, errlog)
+                # errlog not work, need further check
+                # stdio_client(self.config, errlog=errlog)
+                stdio_client(self.config)
             )
             read, write = stdio_transport
             session = await self.exit_stack.enter_async_context(
@@ -56,7 +51,8 @@ class Server:
             )
 
             await session.initialize()
-            await session.set_logging_level("debug") # TODO
+            if debug_model:
+                await session.set_logging_level("debug")
 
             self.session = session
         except Exception as e:

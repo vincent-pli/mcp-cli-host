@@ -8,7 +8,7 @@ import json
 import logging
 from mcp import types
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger("mcp_cli_host")
 
 
 class Azure(Provider):
@@ -63,10 +63,10 @@ class Azure(Provider):
             )
 
         except RateLimitError as e:
-            logger.warning(f"OpenAI API request exceeded rate limit, please try later: {e}")
+            log.warning(f"OpenAI API request exceeded rate limit, please try later: {e}")
         except Exception as e:
             if "maximum context length" in str(e):
-                logger.warning(f"llm hit its maximum context length: {e}")
+                log.warning(f"llm hit its maximum context length: {e}")
             else:
                 raise e
 

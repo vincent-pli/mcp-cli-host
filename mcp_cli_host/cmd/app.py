@@ -3,6 +3,7 @@ from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
+from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN
 from mcp import types, StdioServerParameters
 import json
 import logging
@@ -10,13 +11,10 @@ import asyncio
 import argparse
 import os
 from rich.logging import RichHandler
+from rich.highlighter import NullHighlighter
+from rich.markdown import Markdown
 
-FORMAT = "%(asctime)s - %(message)s"
-logging.basicConfig(
-    level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)]
-)
-
-log = logging.getLogger(__name__)
+log = logging.getLogger("mcp_cli_host")
 
 
 class ChatSession:
@@ -33,11 +31,45 @@ class ChatSession:
         self.message_window = message_window
         self.debug_model = debug_model
         self.servers: dict[str, Server] = None
+        self.history_message: list[GenericMsg] = []
+
+    async def handle_slash_command(self, prompt: str) -> bool:
+        if not prompt.startswith("/"):
+            return False
+        
+        if prompt.lower().strip() == "/tools":
+            for name, server in self.servers.items():
+                console.print(f"[magenta]💻 {name}[/magenta]")
+                for tool in await server.list_tools():
+                    tool_name = tool.name.split("__")[1]
+                    console.print(f"  [bright_cyan]🔧 {tool_name}[/bright_cyan]")
+                    console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
+            return True
+        
+        if prompt.lower().strip() == "/help":
+            console.print(Markdown(MARKDOWN))
+            return True
+        
+        if prompt.lower().strip() == "/history":
+            console.print(self.history_message)
+            return True
+        
+        if prompt.lower().strip() == "/servers":
+            for name, server in self.servers.items():
+                console.print(f"\n\n[magenta]💻 {name}[/magenta]\n")
+                console.print(f"[while]Command[while] [green]{server.config.command}\n")
+                console.print(f"[while]Arguments[while] [green]{server.config.args}\n\n")
+            return True
+        
+        if prompt.lower().strip() == "/quit":
+            raise KeyboardInterrupt()
+        
+        console.print(f"[red][bold]ERROR[/bold]: Unkonw command: {prompt}[/red]\nType /help to see available commands\n\n")
+        return True
 
     async def run_promt(self,
                         provider: Provider,
                         prompt: str,
-                        messages: list[GenericMsg],
                         tools: list[types.Tool]):
 
         if prompt != "":
@@ -47,14 +79,14 @@ class ChatSession:
             }
 
             # Push promot from user
-            messages.append(
+            self.history_message.append(
                 GenericMsg(message_content=json.dumps(message))
             )
-        with console.status("Thinking...", spinner="clock"):
+        with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
             try:
                 llm_res: GenericMsg = provider.completions_create(
                     prompt=prompt,
-                    messages=messages,
+                    messages=self.history_message,
                     tools=tools,
                 )
             except Exception:
@@ -69,11 +101,10 @@ class ChatSession:
             return
 
         # Push response from LLM, could be tool_calls or just text
-        messages.append(llm_res)
+        self.history_message.append(llm_res)
         if llm_res.content:
-            console.print("\n 🤖 Asistant:\n")
-            console.print(llm_res.content, highlight=False,
-                          new_line_start=True)
+            console.print("\n 🤖 [bold bright_yellow]Assistant[/bold bright_yellow]:\n")
+            console.print(f"[bold bright_white]{llm_res.content}[/bold bright_white]", highlight=False)
             console.print("\n\n")
             return
 
@@ -117,7 +148,7 @@ class ChatSession:
 
             tool_call_results.append(result)
         # Push tool excution result
-        messages.append(GenericMsg(
+        self.history_message.append(GenericMsg(
             message_content=tool_call_results
         ))
 
@@ -125,7 +156,6 @@ class ChatSession:
             await self.run_promt(
                 provider=provider,
                 prompt="",
-                messages=messages,
                 tools=tools
             )
 
@@ -182,7 +212,7 @@ class ChatSession:
         for name, server in self.servers.items():
             try:
                 log.info(f"Initializing server... [{name}]")
-                await server.initialize()
+                await server.initialize(self.debug_model)
                 log.info(f"Server connected: [{name}]")
             except Exception as e:
                 await self.cleanup_servers()
@@ -198,30 +228,37 @@ class ChatSession:
             tools.extend(tools_response)
 
         log.info(f"Tools loaded, total count: {len(tools)}")
-        history_message: list[GenericMsg] = []
         try:
             while True:
                 try:
+                    if len(self.history_message) > self.message_window:
+                        for _ in range(len(self.history_message) - self.message_window):
+                            self.history_message.pop()
                     user_input = console.input(
                         "[bold magenta]Enter your prompt (Type /help for commands, Ctrl+C to quit)[/bold magenta]\n")
+                    
+                    print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
+                    console.print(f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_input}[/bold bright_white]")
                     if user_input in ["quit", "exit"]:
-                        logging.info("\nExiting...")
+                        console.print("\nGoodbye")
                         break
+
+                    if await self.handle_slash_command(prompt=user_input):
+                        continue
+
                     await self.run_promt(
                         provider=provider,
                         prompt=user_input,
-                        messages=history_message,
                         tools=tools,
                     )
 
                 except KeyboardInterrupt:
-                    logging.info("\nExiting...")
+                    console.print("\n[magenta]Goodbye![/magenta]")
                     break
         except Exception:
             raise
         finally:
             await self.cleanup_servers()
-
 
 async def main() -> None:
     """Initialize and run the chat session."""
@@ -238,14 +275,19 @@ async def main() -> None:
                         help="base URL for OpenAI API (defaults to api.openai.com)")
     args = parser.parse_args()
 
+    rich_handler = RichHandler(show_path=False, show_time=False, omit_repeated_times=False, show_level=True, highlighter=NullHighlighter())
     if args.debug:
-        FORMAT = "%(asctime)s - %(name)s - %(message)s"
-        logging.basicConfig(
-            level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)]
-        )
-
+        FORMAT = "%(asctime)s <%(filename)s:%(lineno)d> %(message)s"
+        rich_handler.setFormatter(logging.Formatter(FORMAT))
+        log.addHandler(rich_handler)
+        log.setLevel(logging.DEBUG)
+    else:
+        FORMAT = "%(asctime)s %(message)s"
+        rich_handler.setFormatter(logging.Formatter(FORMAT))
+        log.addHandler(rich_handler)
+        log.setLevel(logging.INFO)
+    
     try:
-        # await run_mcp_host(model=args.model, server_conf_path=args.config, openai_url=args.openai_url, message_window=args.message_window, debug_model=args.debug)
         chat_session = ChatSession(
             model=args.model,
             server_conf_path=args.config,
