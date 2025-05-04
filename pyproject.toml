@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "mcp[cli]>=1.6.0",
+    "ollama>=0.4.8",
     "openai>=1.76.0",
     "pydantic>=2.11.3",
     "rich>=14.0.0",
-    "httpx==0.23.3"
 ]

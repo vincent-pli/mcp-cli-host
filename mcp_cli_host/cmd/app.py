@@ -1,6 +1,7 @@
 from mcp_cli_host.llm.azure.provider import Azure
 from mcp_cli_host.llm.openai.provider import Openai
 from mcp_cli_host.llm.deepseek.provider import Deepseek
+from mcp_cli_host.llm.ollama.provider import Ollama
 from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
@@ -94,9 +95,10 @@ class ChatSession:
             except Exception:
                 raise
 
-        input_token, output_token = llm_res.usage
-        log.info(
-            f"Token usage statistics: Input: {input_token}, Output: {output_token}")
+        if llm_res and llm_res.usage:
+            input_token, output_token = llm_res.usage
+            log.info(
+                f"Token usage statistics: Input: {input_token}, Output: {output_token}")
 
         if not llm_res:
             log.warning("LLM response nothing, try again")
@@ -111,6 +113,7 @@ class ChatSession:
             return
 
         tool_call_results: list[CallToolResultWithID] = []
+
         for tool_call in llm_res.toolcalls:
             id = tool_call.id
             name = tool_call.name
@@ -171,7 +174,7 @@ class ChatSession:
         if ":" not in self.model:
             raise ValueError("Invalid format! Expected format is 'a:b'")
 
-        provider, model = self.model.split(":")
+        provider, model = self.model.split(":", 1)
         log.info(f"Model loaded: Provider: [{provider}] Model: [{model}]")
 
         if provider == "openai":
@@ -189,6 +192,7 @@ class ChatSession:
                     'Environment variable OPENAI_API_KEY not found or its value is empty.')
             
             return Deepseek(model=model, base_url=base_url)  # TODO
+        
         elif provider == "azure":
             azure_deploy = os.environ.get('AZURE_OPENAI_DEPLOYMENT', '')
             azure_api_key = os.environ.get('AZURE_OPENAI_API_KEY', '')
@@ -202,7 +206,7 @@ class ChatSession:
             return Azure(model=model)
 
         elif provider == "ollama":
-            ...
+            return Ollama(model=model)
 
         raise ValueError(
             "Unsupport provider: {provider}, should be in ['openai', 'azure', 'ollama']")

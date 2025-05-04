@@ -2,7 +2,7 @@ from mcp_cli_host.llm.models import GenericMsg, ToolCall
 from typing import Union
 import json
 
-class azureMsg(GenericMsg):
+class ollamaMsg(GenericMsg):
     @property
     def content(self) -> Union[str, None]:
         msg_obj = json.loads(self.message_content)
@@ -15,9 +15,8 @@ class azureMsg(GenericMsg):
         tool_calls: list[ToolCall] = []
 
         for call in msg_obj.get("tool_calls", []):
-            call_obj = ToolCall(id=call["id"],
-                                name=call["function"]["name"],
-                                arguments=json.loads(call["function"]["arguments"]))
+            call_obj = ToolCall(name=call["function"]["name"],
+                                arguments=call["function"]["arguments"])
             
             tool_calls.append(call_obj)
 

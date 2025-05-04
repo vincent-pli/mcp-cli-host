@@ -12,7 +12,7 @@ class Role(Enum):
     TOOL = 'tool'
 
 class ToolCall(BaseModel):
-    id: str
+    id: Optional[str] = None
     name: str
     arguments: dict[str, Any]
 
@@ -21,7 +21,7 @@ class TextContent(BaseModel):
     text: str
 
 class CallToolResultWithID(BaseModel):
-    tool_call_id: str
+    tool_call_id: Optional[str] = None
     name: str
     content: list[TextContent]
     isError: bool = False
