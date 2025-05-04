@@ -12,9 +12,9 @@ import json
 import logging
 import asyncio
 import argparse
-import os
 from rich.logging import RichHandler
 from rich.highlighter import NullHighlighter
+import os
 from rich.markdown import Markdown
 
 log = logging.getLogger("mcp_cli_host")
@@ -108,12 +108,12 @@ class ChatSession:
         self.history_message.append(llm_res)
         if llm_res.content:
             console.print("\n 🤖 [bold bright_yellow]Assistant[/bold bright_yellow]:\n")
-            console.print(f"[bold bright_white]{llm_res.content}[/bold bright_white]", highlight=False)
-            console.print("\n\n")
+            console.print(Markdown(llm_res.content))
+            # console.print(f"[bold bright_white]{Markdown(llm_res.content)}[/bold bright_white]", highlight=False)
+            console.print("\n")
             return
 
         tool_call_results: list[CallToolResultWithID] = []
-
         for tool_call in llm_res.toolcalls:
             id = tool_call.id
             name = tool_call.name
@@ -274,6 +274,7 @@ class ChatSession:
         finally:
             await self.cleanup_servers()
 
+
 async def main() -> None:
     """Initialize and run the chat session."""
     parser = argparse.ArgumentParser(prog='mcphost', description="")
@@ -315,6 +316,8 @@ async def main() -> None:
         log.exception(e)
         parser.print_help()
 
-
+def run():
+    asyncio.run(main())
+    
 if __name__ == '__main__':
     asyncio.run(main())
