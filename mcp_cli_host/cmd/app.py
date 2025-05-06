@@ -286,7 +286,7 @@ async def main() -> None:
                         help="model to use (format: provider:model, e.g. azure:gpt-4-0613 or ollama:qwen2.5:3b)")
     parser.add_argument('--debug', required=False,
                         action="store_true", help="enable debug logging")
-    parser.add_argument('--openai-url', required=False,
+    parser.add_argument('--base-url', required=False,
                         help="base URL for OpenAI API (defaults to api.openai.com)")
     args = parser.parse_args()
 
@@ -306,7 +306,7 @@ async def main() -> None:
         chat_session = ChatSession(
             model=args.model,
             server_conf_path=args.config,
-            openai_url=args.openai_url,
+            openai_url=args.base_url,
             message_window=args.message_window,
             debug_model=args.debug)
         
@@ -318,6 +318,6 @@ async def main() -> None:
 
 def run():
     asyncio.run(main())
-    
+
 if __name__ == '__main__':
     asyncio.run(main())
