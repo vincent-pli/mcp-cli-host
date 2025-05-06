@@ -209,7 +209,7 @@ class ChatSession:
             return Ollama(model=model)
 
         raise ValueError(
-            "Unsupport provider: {provider}, should be in ['openai', 'azure', 'ollama']")
+            "Unsupport provider: {provider}, should be in ['openai', 'azure', 'ollama', 'deepseek']")
 
     async def run_mcp_host(self):
         # use register to supply the provider TODO

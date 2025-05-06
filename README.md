@@ -2,6 +2,8 @@
 
 A CLI host application that enables Large Language Models (LLMs) to interact with external tools through the Model Context Protocol (MCP). Currently supports Openai, Azure Openai, Deepseek and Ollama models.
 
+English | [简体中文](./README-zh.md)
+
 ## Features ✨
 
 - Interactive conversations with multipe LLM models
