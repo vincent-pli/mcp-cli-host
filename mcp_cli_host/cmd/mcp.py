@@ -24,8 +24,8 @@ async def message_handler(
     if isinstance(message, types.ServerNotification):
         if isinstance(message.root, types.LoggingMessageNotification):
             message_obj: types.LoggingMessageNotification = message.root
-            log.debug("📩 Received message from server: %s", message_obj.params.data)
-    
+            log.debug("📩 Received log notification message from server: %s", message_obj.params.data)
+
 class Server:
     """Manages MCP server connections and tool execution."""
 
@@ -38,7 +38,7 @@ class Server:
         self.exit_stack: AsyncExitStack = AsyncExitStack()
 
     async def initialize(self, debug_model: bool = False) -> None:
-        """Initialize the server connection."""
+        """Initialize the server connection.""" 
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
                 # errlog not work, need further check
