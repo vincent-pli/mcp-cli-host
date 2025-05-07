@@ -44,7 +44,7 @@ export AZURE_OPENAI_ENDPOINT='your-azure-openai-endpoint'
 ## Installation 📦
 
 ```bash
-TODO
+pip install mcp-cli-host
 ```
 
 ## Configuration ⚙️

@@ -36,7 +36,7 @@ export AZURE_OPENAI_ENDPOINT='your-azure-openai-endpoint'
 ```
 ## 安装 📦
 ```bash
-TODO
+pip install mcp-cli-host
 ```
 ## 配置 ⚙️
 MCPCLIHost 将自动在 `~/.mcp.json` 中找到配置文件。你也可以使用 `--config` 标志指定自定义位置：
