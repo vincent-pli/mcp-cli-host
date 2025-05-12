@@ -94,10 +94,10 @@ Models can be specified using the `--model` (`-m`) flag:
 ### Examples
 ```bash
 # Use Ollama with Qwen model
-mcphost -m ollama:qwen2.5:3b
+mcpclihost -m ollama:qwen2.5:3b
 
 # Use Deepseek
-mcphost -m deepseek:deepseek-chat
+mcpclihost -m deepseek:deepseek-chat
 ```
 
 ### Flags
@@ -119,7 +119,7 @@ While chatting, you can use:
 
 ## MCP Server Compatibility 🔌
 
-MCPHost can work with any MCP-compliant server. For examples and reference implementations, see the [MCP Servers Repository](https://github.com/modelcontextprotocol/servers).
+MCPCliHost can work with any MCP-compliant server. For examples and reference implementations, see the [MCP Servers Repository](https://github.com/modelcontextprotocol/servers).
 
 
 ## License 📄
