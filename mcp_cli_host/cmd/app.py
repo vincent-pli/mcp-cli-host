@@ -6,7 +6,7 @@ from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
-from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN
+from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages
 from mcp import types, StdioServerParameters
 import json
 import logging
@@ -244,9 +244,7 @@ class ChatSession:
         try:
             while True:
                 try:
-                    if len(self.history_message) > self.message_window:
-                        for _ in range(len(self.history_message) - self.message_window):
-                            self.history_message.pop()
+                    self.history_message = prune_messages(self.history_message, self.message_window)
                     user_input = console.input(
                         "[bold magenta]Enter your prompt (Type /help for commands, Ctrl+C to quit)[/bold magenta]\n")
                     

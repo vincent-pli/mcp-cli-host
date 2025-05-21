@@ -1,3 +1,5 @@
+from mcp_cli_host.llm.models import GenericMsg
+
 CLEAR_RIGHT = "\033[K"
 PREV_LINE = "\033[F"
 
@@ -21,3 +23,12 @@ Examples:
 mcphost -m azure:gpt-4-0613
 mcphost -m ollama:qwen2.5:3b
 """
+
+def prune_messages(messages: list[GenericMsg], message_window: int) -> list[GenericMsg]:
+    if len(messages) <= message_window:
+        return messages
+
+    if not messages[0].toolcalls:
+        return messages[1:]
+    else:
+        return messages[2:]
