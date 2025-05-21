@@ -74,7 +74,6 @@ class ChatSession:
                         provider: Provider,
                         prompt: str,
                         tools: list[types.Tool]):
-
         if prompt != "":
             message = {
                 "role": Role.USER.value,
@@ -85,6 +84,7 @@ class ChatSession:
             self.history_message.append(
                 GenericMsg(message_content=json.dumps(message))
             )
+
         with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
             try:
                 llm_res: GenericMsg = provider.completions_create(
@@ -106,10 +106,9 @@ class ChatSession:
 
         # Push response from LLM, could be tool_calls or just text
         self.history_message.append(llm_res)
-        if llm_res.content:
+        if llm_res.content and not llm_res.toolcalls:
             console.print("\n 🤖 [bold bright_yellow]Assistant[/bold bright_yellow]:\n")
             console.print(Markdown(llm_res.content))
-            # console.print(f"[bold bright_white]{Markdown(llm_res.content)}[/bold bright_white]", highlight=False)
             console.print("\n")
             return
 
@@ -254,7 +253,7 @@ class ChatSession:
                     print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
                     if not user_input:
                         continue
-                    
+
                     console.print(f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_input}[/bold bright_white]")
                     if user_input in ["quit", "exit"]:
                         console.print("\nGoodbye")
