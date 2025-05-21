@@ -252,6 +252,9 @@ class ChatSession:
                         "[bold magenta]Enter your prompt (Type /help for commands, Ctrl+C to quit)[/bold magenta]\n")
                     
                     print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
+                    if not user_input:
+                        continue
+                    
                     console.print(f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_input}[/bold bright_white]")
                     if user_input in ["quit", "exit"]:
                         console.print("\nGoodbye")
