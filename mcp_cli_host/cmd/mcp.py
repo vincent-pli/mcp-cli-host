@@ -1,16 +1,51 @@
 from mcp import ClientSession, StdioServerParameters, types
-from mcp.client.stdio import stdio_client
+# from mcp.client.stdio import stdio_client
+from mcp_cli_host.cmd.stdio_client import stdio_client
 from mcp.shared.session import RequestResponder
 import os
 import json
-import sys
 from contextlib import AsyncExitStack
 import asyncio
 import shutil
 import logging
+import anyio
+from types import TracebackType
+from anyio.streams.memory import MemoryObjectReceiveStream
+from typing_extensions import Self, Optional
 
 
 log = logging.getLogger("mcp_cli_host")
+
+class ERRMonitor:
+    def __init__(
+        self,
+        read_stderr: MemoryObjectReceiveStream,
+    ):
+        self.read_stderr = read_stderr
+
+    async def __aenter__(self) -> Self:
+        self._task_group = anyio.create_task_group()
+        await self._task_group.__aenter__()
+        self._task_group.start_soon(self._monitor_server_stderr)
+        return self
+    
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool | None:
+        if self._task_group:
+            return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+        return None
+         
+    async def _monitor_server_stderr(self):
+        async with (
+            self.read_stderr,
+        ):
+            async for message in self.read_stderr:
+                log.debug(
+                    "👻 Received err from server: %s", message.decode() if isinstance(message, bytes) else message)
 
 async def message_handler(
     message: RequestResponder[types.ServerRequest, types.ClientResult]
@@ -24,7 +59,9 @@ async def message_handler(
     if isinstance(message, types.ServerNotification):
         if isinstance(message.root, types.LoggingMessageNotification):
             message_obj: types.LoggingMessageNotification = message.root
-            log.debug("📩 Received log notification message from server: %s", message_obj.params.data)
+            log.debug(
+                "📩 Received log notification message from server: %s", message_obj.params.data)
+
 
 class Server:
     """Manages MCP server connections and tool execution."""
@@ -36,16 +73,19 @@ class Server:
         self.session: ClientSession | None = None
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.exit_stack: AsyncExitStack = AsyncExitStack()
-
+    
     async def initialize(self, debug_model: bool = False) -> None:
-        """Initialize the server connection.""" 
+        """Initialize the server connection."""
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
-                # errlog not work, need further check
-                # stdio_client(self.config, errlog=errlog)
                 stdio_client(self.config)
             )
-            read, write = stdio_transport
+            read, write, err = stdio_transport
+
+            _ = await self.exit_stack.enter_async_context(
+                ERRMonitor(err)
+            )
+
             session = await self.exit_stack.enter_async_context(
                 ClientSession(read, write, message_handler=message_handler)
             )
@@ -79,7 +119,7 @@ class Server:
             tools.append(
                 types.Tool(
                     name=f"{self.name}__{tool.name}",
-                    description=tool.description, 
+                    description=tool.description,
                     inputSchema=tool.inputSchema)
             )
 
@@ -155,12 +195,13 @@ def load_mcp_config(server_conf_path: str = None) -> dict[str, StdioServerParame
 
         assert type(servers) is dict
         for server_name, server_conf in servers.items():
-            command = server_conf["command"] 
+            command = server_conf["command"]
             if not os.path.isabs(command):
                 command = shutil.which(command)
-                
+
             if command is None:
-                raise ValueError("The command must be a valid existed path and cannot be None.")
+                raise ValueError(
+                    "The command must be a valid existed path and cannot be None.")
 
             servers[server_name] = StdioServerParameters(
                 command=command,
@@ -174,4 +215,3 @@ def load_mcp_config(server_conf_path: str = None) -> dict[str, StdioServerParame
     except Exception as e:
         print(f"Error loading mcp server configuration file: {e}")
         raise
-

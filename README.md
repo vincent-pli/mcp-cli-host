@@ -13,6 +13,7 @@ English | [简体中文](./README-zh.md)
 - Configurable MCP server locations and arguments
 - Consistent command interface across model types
 - Configurable message history window for context management
+- Monitor/trace error from server side
 
 
 ## Environment Setup 🔧
