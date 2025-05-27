@@ -90,8 +90,9 @@ class Server:
                 ClientSession(read, write, message_handler=message_handler)
             )
 
-            await session.initialize()
-            if debug_model:
+            initialize_result: types.InitializeResult = await session.initialize()
+
+            if debug_model and initialize_result.capabilities.logging:
                 await session.set_logging_level("debug")
 
             self.session = session
