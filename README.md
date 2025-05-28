@@ -4,6 +4,9 @@ A CLI host application that enables Large Language Models (LLMs) to interact wit
 
 English | [简体中文](./README-zh.md)
 
+## What it looks like: 🤠
+![snapshot](./mcp-cli-host.png)
+
 ## Features ✨
 
 - Interactive conversations with multipe LLM models
