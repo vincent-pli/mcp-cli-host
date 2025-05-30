@@ -22,7 +22,7 @@ def handle_content_ollama(contents: list[TextContent]) -> str:
     return res
 
 class Ollama(Provider):
-    __name = "ollama"
+    _name = "ollama"
 
     def __init__(self, model: str):
         super(Ollama, self).__init__(model)

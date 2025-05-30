@@ -1,7 +1,7 @@
 from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role
 from mcp_cli_host.llm.azure.models import azureMsg
-from openai import OpenAI, RateLimitError
+from openai import OpenAI, RateLimitError, NOT_GIVEN
 from typing import Optional, Union
 import json
 import logging
@@ -11,7 +11,7 @@ log = logging.getLogger("mcp_cli_host")
 
 
 class Openai(Provider):
-    __name = "openai"
+    _name = "openai"
 
     def __init__(self, model: str, base_url: str = None):
         super(Openai, self).__init__(model)
@@ -21,7 +21,7 @@ class Openai(Provider):
         )
 
     def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None) -> Union[GenericMsg, None]:
-        opeanpi_tools = []
+        openai_tools = []
         for tool in tools:
             openai_tool = {
                 "type": "function",
@@ -31,7 +31,7 @@ class Openai(Provider):
                     "parameters": tool.inputSchema,
                 }
             }
-            opeanpi_tools.append(openai_tool)
+            openai_tools.append(openai_tool)
 
         openai_msgs = []
         for msg in messages:
@@ -54,7 +54,7 @@ class Openai(Provider):
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=openai_msgs,
-                tools=opeanpi_tools,
+                tools=openai_tools if len(openai_tools) > 0 else NOT_GIVEN,
                 tool_choice="auto"
             )
 

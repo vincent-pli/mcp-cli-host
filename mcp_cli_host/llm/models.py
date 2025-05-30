@@ -10,6 +10,7 @@ class Role(Enum):
     USER = 'user'
     ASSISTANT = 'assistant'
     TOOL = 'tool'
+    SYSTEM = 'system'
 
 class ToolCall(BaseModel):
     id: Optional[str] = None

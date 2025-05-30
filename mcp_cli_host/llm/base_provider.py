@@ -7,7 +7,7 @@ from mcp import types
 
 
 class Provider(ABC):
-    __name: str
+    _name: str
     __client: any
 
     def __init__(self, model: str):
@@ -16,7 +16,7 @@ class Provider(ABC):
 
     @classmethod
     def name(cls):
-        return cls.__name
+        return cls._name
 
     # Have to handle the differentiation for LLMs
     @abstractmethod

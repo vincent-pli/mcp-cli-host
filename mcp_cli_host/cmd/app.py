@@ -1,9 +1,10 @@
+from mcp_cli_host.llm.models import GenericMsg
 from mcp_cli_host.llm.azure.provider import Azure
 from mcp_cli_host.llm.openai.provider import Openai
 from mcp_cli_host.llm.deepseek.provider import Deepseek
 from mcp_cli_host.llm.ollama.provider import Ollama
 from mcp_cli_host.llm.base_provider import Provider
-from mcp_cli_host.llm.models import GenericMsg, Role, CallToolResultWithID, TextContent
+from mcp_cli_host.llm.models import Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
 from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages
@@ -16,6 +17,7 @@ from rich.logging import RichHandler
 from rich.highlighter import NullHighlighter
 import os
 from rich.markdown import Markdown
+import traceback
 
 log = logging.getLogger("mcp_cli_host")
 
@@ -134,7 +136,6 @@ class ChatSession:
             if tool_call_res.isError:
                 log.warning(
                     f"Error executing tool: {tool_name}, error is: {tool_call_res.content}")
-                return
 
             contents: list[TextContent] = []
             for content in tool_call_res.content:
@@ -225,7 +226,7 @@ class ChatSession:
         for name, server in self.servers.items():
             try:
                 log.info(f"Initializing server... [{name}]")
-                await server.initialize(self.debug_model)
+                await server.initialize(self.debug_model, provider)
                 log.info(f"Server connected: [{name}]")
             except Exception as e:
                 await self.cleanup_servers()
@@ -312,6 +313,7 @@ async def main() -> None:
         
         await chat_session.run_mcp_host()
     except Exception as e:
+        traceback.print_exception(e)
         log.error(f"{e}")
         log.exception(e)
         parser.print_help()

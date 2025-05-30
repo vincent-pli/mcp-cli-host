@@ -1,7 +1,7 @@
 from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import GenericMsg, Role, TextContent
 from mcp_cli_host.llm.azure.models import azureMsg
-from openai import OpenAI, RateLimitError
+from openai import OpenAI, RateLimitError, NOT_GIVEN
 from typing import Optional, Union
 import json
 import logging
@@ -17,7 +17,7 @@ def handle_content_deepseek(contents: list[TextContent]) -> str:
     return res
 
 class Deepseek(Provider):
-    __name = "deepseek"
+    _name = "deepseek"
 
     def __init__(self, model: str, base_url: str = "https://api.deepseek.com"):
         super(Deepseek, self).__init__(model)
@@ -27,7 +27,7 @@ class Deepseek(Provider):
         )
 
     def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None) -> Union[GenericMsg, None]:
-        opeanpi_tools = []
+        openai_tools = []
         for tool in tools:
             openai_tool = {
                 "type": "function",
@@ -37,7 +37,7 @@ class Deepseek(Provider):
                     "parameters": tool.inputSchema,
                 }
             }
-            opeanpi_tools.append(openai_tool)
+            openai_tools.append(openai_tool)
 
         openai_msgs = []
         for msg in messages:
@@ -62,7 +62,7 @@ class Deepseek(Provider):
             completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=openai_msgs,
-                tools=opeanpi_tools,
+                tools=openai_tools if len(openai_tools) > 0 else NOT_GIVEN,
                 tool_choice="auto"
             )
 
@@ -72,7 +72,8 @@ class Deepseek(Provider):
             if "maximum context length" in str(e):
                 log.warning(f"llm hit its maximum context length: {e}")
             else:
+                print(e)
                 raise e
-
+     
         return azureMsg(message_content=json.dumps(completion.choices[0].message.to_dict()),
                         token_usage=completion.usage) if completion else None
