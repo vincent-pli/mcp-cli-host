@@ -29,6 +29,7 @@ class ChatSession:
                  openai_url: str = None,
                  message_window: int = 10,
                  debug_model: bool = False,
+                 roots: list[str] = None,
                  ) -> None:
         self.model = model
         self.server_conf_path = server_conf_path
@@ -37,6 +38,7 @@ class ChatSession:
         self.debug_model = debug_model
         self.servers: dict[str, Server] = None
         self.history_message: list[GenericMsg] = []
+        self.roots = roots
 
     async def handle_slash_command(self, prompt: str) -> bool:
         if not prompt.startswith("/"):
@@ -226,7 +228,7 @@ class ChatSession:
         for name, server in self.servers.items():
             try:
                 log.info(f"Initializing server... [{name}]")
-                await server.initialize(self.debug_model, provider)
+                await server.initialize(self.debug_model, provider, self.roots)
                 log.info(f"Server connected: [{name}]")
             except Exception as e:
                 await self.cleanup_servers()
@@ -289,6 +291,8 @@ async def main() -> None:
                         action="store_true", help="enable debug logging")
     parser.add_argument('--base-url', required=False,
                         help="base URL for OpenAI API (defaults to api.openai.com)")
+    parser.add_argument('--roots', required=False, nargs='*',
+                        help="clients to expose filesystem “roots” to servers")
     args = parser.parse_args()
 
     rich_handler = RichHandler(show_path=False, show_time=False, omit_repeated_times=False, show_level=True, highlighter=NullHighlighter(), rich_tracebacks=True)
@@ -309,7 +313,8 @@ async def main() -> None:
             server_conf_path=args.config,
             openai_url=args.base_url,
             message_window=args.message_window,
-            debug_model=args.debug)
+            debug_model=args.debug,
+            roots=args.roots)
         
         await chat_session.run_mcp_host()
     except Exception as e:

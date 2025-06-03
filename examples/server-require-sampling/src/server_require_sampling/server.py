@@ -2,7 +2,9 @@ import anyio
 import click
 import mcp.types as types
 from mcp.server.lowlevel import Server
-
+import os
+from server_require_sampling.utils import file_url_to_path
+from pathlib import Path
 
 async def generate_story(
     prompt: str,
@@ -19,8 +21,25 @@ async def generate_story(
         system_prompt = "You are an excellent storyteller, known for your wit and humor. Craft a story based on the user's request, keeping it under 300 words."
     )
 
-    
     return [value.content]
+
+async def create_file_by_roots(
+    file_name: str,
+    content: str,
+    server: Server        
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    ctx = server.request_context
+    value: types.ListRootsResult = await ctx.session.list_roots()
+    
+    base_path = file_url_to_path(value.roots[0].uri)
+    file_path = os.path.join(base_path, file_name)
+    Path(base_path).mkdir(parents=True, exist_ok=True)
+
+    with open(file_path, "w") as file:
+        file.write(content)
+
+    return [types.TextContent(type='text', text=f"File has been created successfully at: {file_path}")]
+
 
 @click.command()
 @click.option("--port", default=8000, help="Port to listen on for SSE")
@@ -37,11 +56,16 @@ def main(port: int, transport: str) -> int:
     async def fetch_tool(
         name: str, arguments: dict
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-        if name != "fetch":
+        if name != "fetch" and name != "create":
             raise ValueError(f"Unknown tool: {name}")
-        if "prompt" not in arguments:
-            raise ValueError("Missing required argument 'promot'")
-        return await generate_story(arguments["prompt"], app)
+        if name == "fetch":
+            if "prompt" not in arguments:
+                raise ValueError("Missing required argument 'promot'")
+            return await generate_story(arguments["prompt"], app)
+        if name == "create":
+            if "file_name" not in arguments and "content" not in arguments:
+                raise ValueError("Missing required argument 'file_name'/'content'")
+            return await create_file_by_roots(arguments["file_name"], arguments["content"], app)
 
     @app.list_tools()
     async def list_tools() -> list[types.Tool]:
@@ -56,6 +80,24 @@ def main(port: int, transport: str) -> int:
                         "prompt": {
                             "type": "string",
                             "description": "a short description about the story",
+                        }
+                    },
+                },
+            ),
+            types.Tool(
+                name="create",
+                description="create file with content from user",
+                inputSchema={
+                    "type": "object",
+                    "required": ["file_name", "content"],
+                    "properties": {
+                        "file_name": {
+                            "type": "string",
+                            "description": "name of the file",
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "content of the file",
                         }
                     },
                 },

@@ -18,6 +18,7 @@ English | [简体中文](./README-zh.md)
 - Configurable message history window for context management
 - Monitor/trace error from server side
 - Support sampling
+- Support Roots
 
 
 ## Environment Setup 🔧

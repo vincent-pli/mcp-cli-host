@@ -11,6 +11,7 @@
 - 可配置的消息历史窗口，用于上下文管理
 - 监控和跟踪来自server端的错误
 - 支持sampling
+- 支持Roots
 
 ## 环境设置 🔧
 1. 对于 Openai 和 Deepseek:

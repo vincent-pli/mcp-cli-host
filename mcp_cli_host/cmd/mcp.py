@@ -14,15 +14,17 @@ from typing_extensions import Self
 from mcp.shared.context import RequestContext
 from typing import Any
 from mcp_cli_host.llm.base_provider import Provider
-from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN
+from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE
 from mcp_cli_host.llm.models import GenericMsg
 from mcp_cli_host.llm.models import Role
 from rich.console import Console
+from pydantic import FileUrl
 
 console = Console()
 
 
 log = logging.getLogger("mcp_cli_host")
+
 
 class ERRMonitor:
     def __init__(
@@ -36,7 +38,7 @@ class ERRMonitor:
         await self._task_group.__aenter__()
         self._task_group.start_soon(self._monitor_server_stderr)
         return self
-    
+
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
@@ -46,7 +48,7 @@ class ERRMonitor:
         if self._task_group:
             return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
         return None
-         
+
     async def _monitor_server_stderr(self):
         async with (
             self.read_stderr,
@@ -55,30 +57,33 @@ class ERRMonitor:
                 log.debug(
                     "👻 Received err from server: %s", message.decode() if isinstance(message, bytes) else message)
 
+
 class SamplingCallback:
     def __init__(self, provider: Provider):
         self.provider = provider
-    
+
     async def __call__(
         self,
         context: RequestContext["ClientSession", Any],
         params: types.CreateMessageRequestParams,
     ) -> types.CreateMessageResult | types.ErrorData:
         while True:
-            try:                
-                messages_rec = json.dumps([msg.model_dump() for msg in params.messages], indent=2, ensure_ascii=False)
+            try:
+                messages_rec = json.dumps(
+                    [msg.model_dump() for msg in params.messages], indent=2, ensure_ascii=False)
                 user_confirmation = console.input(
                     f"[bold magenta]Received sampling request from Server (Type 'yes' for continue, 'no' for stop):[/bold magenta]\n[green]{messages_rec}\n[/green](yes/no): ")
-                
+
                 print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
                 if not user_confirmation:
                     continue
-                
+
                 if user_confirmation != "yes" and user_confirmation != "no":
                     continue
-            
-                console.print(f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_confirmation}[/bold bright_white]")
-                
+
+                console.print(
+                    f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_confirmation}[/bold bright_white]")
+
                 if user_confirmation == "yes":
                     messages: list[GenericMsg] = []
                     system_message = {
@@ -121,11 +126,12 @@ class SamplingCallback:
                             code=types.INVALID_REQUEST,
                             message="LLM response nothing, try again",
                         )
-                    
+
                     if llm_res.content and not llm_res.toolcalls:
                         return types.CreateMessageResult(
                             role="assistant",
-                            content=types.TextContent(type="text", text=llm_res.content),
+                            content=types.TextContent(
+                                type="text", text=llm_res.content),
                             model=self.provider.name(),
                             stopReason="endTurn",
                         )
@@ -135,14 +141,14 @@ class SamplingCallback:
                         code=types.INVALID_REQUEST,
                         message="User prevent the request",
                     )
-                    
+
             except KeyboardInterrupt:
                 console.print("\n[magenta]Goodbye![/magenta]")
                 break
             except Exception:
                 raise
 
-    
+
 async def message_handler(
     message: RequestResponder[types.ServerRequest, types.ClientResult]
     | types.ServerNotification
@@ -158,6 +164,28 @@ async def message_handler(
             log.debug(
                 "📩 Received log notification message from server: %s", message_obj.params.data)
 
+
+class RootsCallback:
+    def __init__(self, roots: list[str] = None):
+        self.roots = roots
+
+    async def __call__(self,
+                       context: RequestContext["ClientSession", Any],
+                       ) -> types.ListRootsResult | types.ErrorData:
+        
+        roots: list[types.Root] = []
+        if self.roots:
+            for index, root in enumerate(self.roots):
+                roots.append(types.Root(
+                    uri=FileUrl(root if root.startswith("file://") else "file://" + root),
+                    name="workspace_" + str(index),
+                ))
+
+        return types.ListRootsResult(
+            roots=roots
+        )
+
+
 class Server:
     """Manages MCP server connections and tool execution."""
 
@@ -168,8 +196,8 @@ class Server:
         self.session: ClientSession | None = None
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.exit_stack: AsyncExitStack = AsyncExitStack()
-    
-    async def initialize(self, debug_model: bool = False, provider: Provider = None) -> None:
+
+    async def initialize(self, debug_model: bool = False, provider: Provider = None, roots: list[str] = None) -> None:
         """Initialize the server connection."""
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
@@ -182,7 +210,12 @@ class Server:
             )
 
             session = await self.exit_stack.enter_async_context(
-                ClientSession(read, write, message_handler=message_handler, sampling_callback=SamplingCallback(provider))
+                ClientSession(read,
+                              write,
+                              message_handler=message_handler,
+                              sampling_callback=SamplingCallback(provider),
+                              list_roots_callback=RootsCallback(roots) if roots else None
+                            )
             )
 
             initialize_result: types.InitializeResult = await session.initialize()
