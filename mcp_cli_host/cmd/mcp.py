@@ -46,6 +46,7 @@ class ERRMonitor:
         exc_tb: TracebackType | None,
     ) -> bool | None:
         if self._task_group:
+            self._task_group.cancel_scope.cancel()
             return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
         return None
 
@@ -304,6 +305,7 @@ class Server:
         async with self._cleanup_lock:
             try:
                 await self.exit_stack.aclose()
+                
                 self.session = None
                 self.stdio_context = None
             except Exception as e:
