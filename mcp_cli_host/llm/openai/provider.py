@@ -55,7 +55,7 @@ class Openai(Provider):
                 model=self.model,
                 messages=openai_msgs,
                 tools=openai_tools if len(openai_tools) > 0 else NOT_GIVEN,
-                tool_choice="required"
+                tool_choice="auto"
             )
 
         except RateLimitError as e:
