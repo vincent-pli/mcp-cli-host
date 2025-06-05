@@ -1,191 +1,22 @@
 from mcp import ClientSession, StdioServerParameters, types
 from mcp_cli_host.cmd.stdio_client import stdio_client
-from mcp.shared.session import RequestResponder
+from mcp_cli_host.cmd.mcp_client_functions.err_monitor import ERRMonitor
+from mcp_cli_host.cmd.mcp_client_functions.sampling_handler import SamplingCallback
+from mcp_cli_host.cmd.mcp_client_functions.notification_handler import message_handler
+from mcp_cli_host.cmd.mcp_client_functions.roots_handler import RootsCallback
 import os
 import json
 from contextlib import AsyncExitStack
 import asyncio
 import shutil
 import logging
-import anyio
-from types import TracebackType
-from anyio.streams.memory import MemoryObjectReceiveStream
-from typing_extensions import Self
-from mcp.shared.context import RequestContext
-from typing import Any
 from mcp_cli_host.llm.base_provider import Provider
-from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE
-from mcp_cli_host.llm.models import GenericMsg
-from mcp_cli_host.llm.models import Role
 from rich.console import Console
-from pydantic import FileUrl
 
 console = Console()
 
 
 log = logging.getLogger("mcp_cli_host")
-
-
-class ERRMonitor:
-    def __init__(
-        self,
-        read_stderr: MemoryObjectReceiveStream,
-    ):
-        self.read_stderr = read_stderr
-
-    async def __aenter__(self) -> Self:
-        self._task_group = anyio.create_task_group()
-        await self._task_group.__aenter__()
-        self._task_group.start_soon(self._monitor_server_stderr)
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> bool | None:
-        if self._task_group:
-            self._task_group.cancel_scope.cancel()
-            return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
-        return None
-
-    async def _monitor_server_stderr(self):
-        async with (
-            self.read_stderr,
-        ):
-            async for message in self.read_stderr:
-                log.debug(
-                    "👻 Received err from server: %s", message.decode() if isinstance(message, bytes) else message)
-
-
-class SamplingCallback:
-    def __init__(self, provider: Provider):
-        self.provider = provider
-
-    async def __call__(
-        self,
-        context: RequestContext["ClientSession", Any],
-        params: types.CreateMessageRequestParams,
-    ) -> types.CreateMessageResult | types.ErrorData:
-        while True:
-            try:
-                messages_rec = json.dumps(
-                    [msg.model_dump() for msg in params.messages], indent=2, ensure_ascii=False)
-                user_confirmation = console.input(
-                    f"[bold magenta]Received sampling request from Server (Type 'yes' for continue, 'no' for stop):[/bold magenta]\n[green]{messages_rec}\n[/green](yes/no): ")
-
-                print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
-                if not user_confirmation:
-                    continue
-
-                if user_confirmation != "yes" and user_confirmation != "no":
-                    continue
-
-                console.print(
-                    f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_confirmation}[/bold bright_white]")
-
-                if user_confirmation == "yes":
-                    messages: list[GenericMsg] = []
-                    system_message = {
-                        "role": Role.SYSTEM.value,
-                        "content": params.systemPrompt
-                    }
-
-                    messages.append(GenericMsg(
-                        message_content=json.dumps(system_message)
-                    ))
-                    # mcp SamplingMessage not match the message format of openai, meed transfer
-                    # the message.content in openai is either a str or list[TextContent]
-                    for msg in params.messages:
-                        new_msg = {
-                            "role": msg.role,
-                            "content": [msg.content.model_dump()],
-                        }
-                        messages.append(GenericMsg(
-                            message_content=json.dumps(new_msg))
-                        )
-
-                    with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
-                        try:
-                            llm_res: GenericMsg = self.provider.completions_create(
-                                prompt="",
-                                messages=messages,
-                                tools=[],
-                            )
-                        except Exception:
-                            raise
-
-                    if llm_res and llm_res.usage:
-                        input_token, output_token = llm_res.usage
-                        log.info(
-                            f"Token usage statistics: Input: {input_token}, Output: {output_token}")
-
-                    if not llm_res:
-                        log.warning("LLM response nothing, try again")
-                        return types.ErrorData(
-                            code=types.INVALID_REQUEST,
-                            message="LLM response nothing, try again",
-                        )
-
-                    if llm_res.content and not llm_res.toolcalls:
-                        return types.CreateMessageResult(
-                            role="assistant",
-                            content=types.TextContent(
-                                type="text", text=llm_res.content),
-                            model=self.provider.name(),
-                            stopReason="endTurn",
-                        )
-                else:
-                    console.print(" ❌, reject the request ")
-                    return types.ErrorData(
-                        code=types.INVALID_REQUEST,
-                        message="User prevent the request",
-                    )
-
-            except KeyboardInterrupt:
-                console.print("\n[magenta]Goodbye![/magenta]")
-                break
-            except Exception:
-                raise
-
-
-async def message_handler(
-    message: RequestResponder[types.ServerRequest, types.ClientResult]
-    | types.ServerNotification
-    | Exception
-    | str
-) -> None:
-    if isinstance(message, Exception):
-        log.error("Error: %s", message)
-        return
-    if isinstance(message, types.ServerNotification):
-        if isinstance(message.root, types.LoggingMessageNotification):
-            message_obj: types.LoggingMessageNotification = message.root
-            log.debug(
-                "📩 Received log notification message from server: %s", message_obj.params.data)
-
-
-class RootsCallback:
-    def __init__(self, roots: list[str] = None):
-        self.roots = roots
-
-    async def __call__(self,
-                       context: RequestContext["ClientSession", Any],
-                       ) -> types.ListRootsResult | types.ErrorData:
-        
-        roots: list[types.Root] = []
-        if self.roots:
-            for index, root in enumerate(self.roots):
-                roots.append(types.Root(
-                    uri=FileUrl(root if root.startswith("file://") else "file://" + root),
-                    name="workspace_" + str(index),
-                ))
-
-        return types.ListRootsResult(
-            roots=roots
-        )
-
 
 class Server:
     """Manages MCP server connections and tool execution."""
