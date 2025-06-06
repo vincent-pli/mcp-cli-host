@@ -18,10 +18,12 @@ You can also press Ctrl+C at any time to quit.
 Specify models using the --model or -m flag:
 - **Azure Openai**: `azure:modelname`
 - **Ollama Models**: `ollama:modelname`
+- **Deepseek Models**: `deepseek:deepseek-chat`
 
-Examples:
-mcphost -m azure:gpt-4-0613
-mcphost -m ollama:qwen2.5:3b
+Examples:   
+mcpclihost -m azure:gpt-4-0613    
+mcpclihost -m ollama:qwen2.5:3b    
+mcpclihost -m deepseek:deepseek-chat    
 """
 
 def prune_messages(messages: list[GenericMsg], message_window: int) -> list[GenericMsg]:
