@@ -280,7 +280,7 @@ class ChatSession:
 
 async def main() -> None:
     """Initialize and run the chat session."""
-    parser = argparse.ArgumentParser(prog='mcphost', description="")
+    parser = argparse.ArgumentParser(prog='mcpclihost', description="")
     parser.add_argument('--config', required=False,
                         help="config file (default is $HOME/mcp.json)")
     parser.add_argument('--message-window', required=False, type=int,
