@@ -5,6 +5,7 @@ from mcp.server.lowlevel import Server
 import os
 from server_require_sampling.utils import file_url_to_path
 from pathlib import Path
+import time
 
 async def generate_story(
     prompt: str,
@@ -31,6 +32,21 @@ async def create_file_by_roots(
     ctx = server.request_context
     value: types.ListRootsResult = await ctx.session.list_roots()
     
+    await ctx.session.send_log_message(
+        level="info",
+        data=f"Received roots: {value.roots}",
+        logger="notification_stream",
+    )
+
+    for i in range(11):  
+        await ctx.session.send_progress_notification(
+            progress_token="file_creation_progress",
+            progress=i / 10,
+            total=1,
+        )
+        time.sleep(1)
+            
+
     base_path = file_url_to_path(value.roots[0].uri)
     file_path = os.path.join(base_path, file_name)
     Path(base_path).mkdir(parents=True, exist_ok=True)

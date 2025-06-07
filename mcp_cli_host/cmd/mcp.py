@@ -2,7 +2,7 @@ from mcp import ClientSession, StdioServerParameters, types
 from mcp_cli_host.cmd.stdio_client import stdio_client
 from mcp_cli_host.cmd.mcp_client_functions.err_monitor import ERRMonitor
 from mcp_cli_host.cmd.mcp_client_functions.sampling_handler import SamplingCallback
-from mcp_cli_host.cmd.mcp_client_functions.notification_handler import message_handler
+from mcp_cli_host.cmd.mcp_client_functions.notification_handler import NotificationHandler
 from mcp_cli_host.cmd.mcp_client_functions.roots_handler import RootsCallback
 import os
 import json
@@ -44,7 +44,7 @@ class Server:
             session = await self.exit_stack.enter_async_context(
                 ClientSession(read,
                               write,
-                              message_handler=message_handler,
+                              message_handler=NotificationHandler(),
                               sampling_callback=SamplingCallback(provider),
                               list_roots_callback=RootsCallback(roots) if roots else None
                             )
