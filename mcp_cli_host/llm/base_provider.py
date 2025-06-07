@@ -20,7 +20,7 @@ class Provider(ABC):
 
     # Have to handle the differentiation for LLMs
     @abstractmethod
-    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None) -> Union[GenericMsg, None]:
+    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None, max_tokens: int = None) -> Union[GenericMsg, None]:
         ...
 
 

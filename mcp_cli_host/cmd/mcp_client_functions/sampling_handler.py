@@ -25,7 +25,7 @@ class SamplingCallback:
                 messages_rec = json.dumps(
                     [msg.model_dump() for msg in params.messages], indent=2, ensure_ascii=False)
                 user_confirmation = console.input(
-                    f"[bold magenta]Received sampling request from Server (Type 'yes' for continue, 'no' for stop):[/bold magenta]\n[green]{messages_rec}\n[/green](yes/no): ")
+                    f"[bold magenta]Received sampling request from Server (Type 'yes' for continue, 'no' for stop):[/bold magenta]\n[green]{messages_rec}\n[/green]The request will cost [bold red]{params.maxTokens}[/bold red] tokens (yes/no): ")
 
                 print(f"{PREV_LINE}{PREV_LINE}{CLEAR_RIGHT}")
                 if not user_confirmation:
@@ -64,6 +64,7 @@ class SamplingCallback:
                                 prompt="",
                                 messages=messages,
                                 tools=[],
+                                max_tokens=params.maxTokens,
                             )
                         except Exception:
                             raise

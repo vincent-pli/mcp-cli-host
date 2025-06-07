@@ -30,7 +30,7 @@ class Ollama(Provider):
         # Support 'host', 'header' .etc to handle the remote ollama server TODO
         self.client = Client()
 
-    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None) -> Union[GenericMsg, None]:
+    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None, max_tokens: int = None) -> Union[GenericMsg, None]:
         opeanpi_tools = []
         for tool in tools:
             openai_tool = {

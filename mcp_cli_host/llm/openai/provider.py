@@ -20,7 +20,7 @@ class Openai(Provider):
             base_url=base_url
         )
 
-    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None) -> Union[GenericMsg, None]:
+    def completions_create(self, prompt: str, messages: list[GenericMsg], tools: Optional[list[types.Tool]] = None, max_tokens: int = None) -> Union[GenericMsg, None]:
         openai_tools = []
         for tool in tools:
             openai_tool = {
@@ -55,7 +55,8 @@ class Openai(Provider):
                 model=self.model,
                 messages=openai_msgs,
                 tools=openai_tools if len(openai_tools) > 0 else NOT_GIVEN,
-                tool_choice="auto"
+                tool_choice="auto",
+                max_tokens=max_tokens if max_tokens is not None else NOT_GIVEN,
             )
 
         except RateLimitError as e:
