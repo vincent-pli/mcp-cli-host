@@ -11,6 +11,7 @@ from anyio.streams.text import TextReceiveStream
 from pydantic import BaseModel, Field
 
 import mcp.types as types
+from mcp.shared.message import SessionMessage
 
 # Environment variables to inherit by default
 DEFAULT_INHERITED_ENV_VARS = (
@@ -92,32 +93,36 @@ async def stdio_client(server: StdioServerParameters):
     Client transport for stdio: this will connect to a server by spawning a
     process and communicating with it over stdin/stdout.
     """
-    read_stream: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception]
-    read_stream_writer: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
+    read_stream: MemoryObjectReceiveStream[SessionMessage | Exception]
+    read_stream_writer: MemoryObjectSendStream[SessionMessage | Exception]
 
     read_stream_err: MemoryObjectReceiveStream[types.JSONRPCMessage | Exception]
     read_stream_writer_err: MemoryObjectSendStream[types.JSONRPCMessage | Exception]
 
-    write_stream: MemoryObjectSendStream[types.JSONRPCMessage]
-    write_stream_reader: MemoryObjectReceiveStream[types.JSONRPCMessage]
+    write_stream: MemoryObjectSendStream[SessionMessage]
+    write_stream_reader: MemoryObjectReceiveStream[SessionMessage]
 
     read_stream_writer, read_stream = anyio.create_memory_object_stream(0)
     read_stream_writer_err, read_stream_err = anyio.create_memory_object_stream(0)
     write_stream, write_stream_reader = anyio.create_memory_object_stream(0)
 
-    command = _get_executable_command(server.command)
+    try:
+        command = _get_executable_command(server.command)
 
-    # Open process with stderr piped for capture
-    process = await _create_platform_compatible_process(
-        command=command,
-        args=server.args,
-        env=(
-            {**get_default_environment(), **server.env}
-            if server.env is not None
-            else get_default_environment()
-        ),
-        cwd=server.cwd,
-    )
+        # Open process with stderr piped for capture
+        process = await _create_platform_compatible_process(
+            command=command,
+            args=server.args,
+            env=({**get_default_environment(), **server.env} if server.env is not None else get_default_environment()),
+            cwd=server.cwd,
+        )
+    except OSError:
+        # Clean up streams if process creation fails
+        await read_stream.aclose()
+        await write_stream.aclose()
+        await read_stream_writer.aclose()
+        await write_stream_reader.aclose()
+        raise
 
     async def stdout_reader():
         assert process.stdout, "Opened process is missing stdout"
@@ -140,7 +145,8 @@ async def stdio_client(server: StdioServerParameters):
                             await read_stream_writer.send(exc)
                             continue
 
-                        await read_stream_writer.send(message)
+                        session_message = SessionMessage(message)
+                        await read_stream_writer.send(session_message)
         except anyio.ClosedResourceError:
             await anyio.lowlevel.checkpoint()
 
@@ -168,8 +174,8 @@ async def stdio_client(server: StdioServerParameters):
 
         try:
             async with write_stream_reader:
-                async for message in write_stream_reader:
-                    json = message.model_dump_json(by_alias=True, exclude_none=True)
+                async for session_message in write_stream_reader:
+                    json = session_message.message.model_dump_json(by_alias=True, exclude_none=True)
                     await process.stdin.send(
                         (json + "\n").encode(
                             encoding=server.encoding,
@@ -190,7 +196,17 @@ async def stdio_client(server: StdioServerParameters):
             yield read_stream, write_stream, read_stream_err
         finally:
             # Clean up process to prevent any dangling orphaned processes
-            process.terminate()
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                # Process already exited, which is fine
+                pass
+            await read_stream.aclose()
+            await write_stream.aclose()
+            await read_stream_writer.aclose()
+            await write_stream_reader.aclose()
+            await read_stream_err.aclose()
+            await read_stream_writer_err.aclose()
 
 
 def _get_executable_command(command: str) -> str:
@@ -216,8 +232,6 @@ async def _create_platform_compatible_process(
     Creates a subprocess in a platform-compatible way.
     Returns a process handle.
     """
-    process = await anyio.open_process(
-        [command, *args], env=env, cwd=cwd
-    )
+    process = await anyio.open_process([command, *args], env=env, cwd=cwd)
 
     return process
