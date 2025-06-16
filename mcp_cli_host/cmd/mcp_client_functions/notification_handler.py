@@ -29,14 +29,15 @@ class NotificationHandler:
 
             if isinstance(message.root, types.ProgressNotification):
                 message_obj: types.ProgressNotification = message.root
+                message = message_obj.params.message if message_obj.params.message else "Progressing..."
                 self.process.start()
                 if self.current_task is None:
                     self.current_task = self.process.add_task(
-                        description="[green]Progressing...[/green]",
+                        description=f"[green]{message}[/green]",
                         total=message_obj.params.total
                     )
                 else:
-                    self.process.update(self.current_task, completed=message_obj.params.progress, total=message_obj.params.total)
+                    self.process.update(self.current_task, completed=message_obj.params.progress, total=message_obj.params.total, description=f"[green]{message}[/green]")
                 
                 if message_obj.params.progress >= message_obj.params.total:
                     self.process.stop()

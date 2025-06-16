@@ -43,6 +43,7 @@ async def create_file_by_roots(
             progress_token="file_creation_progress",
             progress=i / 10,
             total=1,
+            message=f"Creating file {file_name} ({i * 10}% complete)",
         )
         time.sleep(1)
             
