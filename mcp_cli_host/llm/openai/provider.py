@@ -57,6 +57,7 @@ class Openai(Provider):
                 tools=openai_tools if len(openai_tools) > 0 else NOT_GIVEN,
                 tool_choice="auto",
                 max_tokens=max_tokens if max_tokens is not None else NOT_GIVEN,
+                timeout= 60,  # Set a timeout for the request
             )
 
         except RateLimitError as e:
