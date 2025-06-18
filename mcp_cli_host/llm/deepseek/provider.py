@@ -38,8 +38,6 @@ class Deepseek(Provider):
                 }
             }
             openai_tools.append(openai_tool)
-            print("xxxx")
-            print(tool.name)
 
         openai_msgs = []
         for msg in messages:
