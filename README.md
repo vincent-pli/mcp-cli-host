@@ -19,6 +19,7 @@ English | [简体中文](./README-zh.md)
 - Monitor/trace error from server side
 - Support sampling
 - Support Roots
+- Support runtime exclude specific tool
 
 
 ## Environment Setup 🔧
@@ -120,6 +121,7 @@ While chatting, you can use:
 - `/tools`: List all available tools
 - `/servers`: List configured MCP servers
 - `/history`: Display conversation history
+- `/exclude_tool tool_name`: Exclude specific tool from the conversation
 - `Ctrl+C`: Exit at any time
 
 

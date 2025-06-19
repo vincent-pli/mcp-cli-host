@@ -39,6 +39,8 @@ class ChatSession:
         self.servers: dict[str, Server] = None
         self.history_message: list[GenericMsg] = []
         self.roots = roots
+        self.tools: list[types.Tool] = []
+        self.excluded_tools: list[str] = []
 
     async def handle_slash_command(self, prompt: str) -> bool:
         if not prompt.startswith("/"):
@@ -48,9 +50,15 @@ class ChatSession:
             for name, server in self.servers.items():
                 console.print(f"[magenta]💻 {name}[/magenta]")
                 for tool in await server.list_tools():
+                    excluded = tool.name in self.excluded_tools
                     tool_name = tool.name.split("__")[1]
-                    console.print(f"  [bright_cyan]🔧 {tool_name}[/bright_cyan]")
+                    if excluded:
+                        console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
+                    else:
+                        console.print(f"  [bright_cyan]🔧 {tool_name}[/bright_cyan]")
                     console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
+                console.print("\n")
+
             return True
         
         if prompt.lower().strip() == "/help":
@@ -71,13 +79,25 @@ class ChatSession:
         if prompt.lower().strip() == "/quit":
             raise KeyboardInterrupt()
         
+        if prompt.lower().startswith("/exclude_tool"):
+            if len(prompt.split()) < 2:
+                console.print("[red][bold]ERROR[/bold]: Missing tool name to exclude[/red]\n")
+                return True
+            
+            tool_name = prompt.split()[1]
+            self.excluded_tools.extend([tool.name for tool in self.tools if tool.name.endswith(tool_name)])
+            self.tools = [tool for tool in self.tools if not tool.name.endswith(tool_name)]
+            console.print(f"[green]Tool '{tool_name}' excluded successfully.[/green]\n")
+            return True
+
+        
         console.print(f"[red][bold]ERROR[/bold]: Unkonw command: {prompt}[/red]\nType /help to see available commands\n\n")
         return True
 
     async def run_promt(self,
                         provider: Provider,
-                        prompt: str,
-                        tools: list[types.Tool]):
+                        prompt: str):
+
         if prompt != "":
             message = {
                 "role": Role.USER.value,
@@ -94,7 +114,7 @@ class ChatSession:
                 llm_res: GenericMsg = provider.completions_create(
                     prompt=prompt,
                     messages=self.history_message,
-                    tools=tools,
+                    tools=self.tools,
                 )
             except Exception:
                 raise
@@ -162,8 +182,7 @@ class ChatSession:
         if len(tool_call_results) > 0:
             await self.run_promt(
                 provider=provider,
-                prompt="",
-                tools=tools
+                prompt=""
             )
 
     async def cleanup_servers(self) -> None:
@@ -244,6 +263,7 @@ class ChatSession:
             tools.extend(tools_response)
 
         log.info(f"Tools loaded, total count: {len(tools)}")
+        self.tools = tools
         try:
             while True:
                 try:
@@ -266,7 +286,6 @@ class ChatSession:
                     await self.run_promt(
                         provider=provider,
                         prompt=user_input,
-                        tools=tools,
                     )
 
                 except KeyboardInterrupt:

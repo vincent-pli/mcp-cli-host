@@ -11,6 +11,7 @@ The following commands are available:
 - **/servers**: List configured MCP servers
 - **/history**: Display conversation history
 - **/quit**: Exit the application
+- **/exclude_tool**: Exclude specific tool from the conversation, example: `/exclude_tool tool_name`
 
 You can also press Ctrl+C at any time to quit.
 

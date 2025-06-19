@@ -12,6 +12,7 @@
 - 监控和跟踪来自server端的错误
 - 支持sampling
 - 支持Roots
+- 支持对话中去掉某个tool
 
 ## 环境设置 🔧
 1. 对于 Openai 和 Deepseek:
@@ -97,6 +98,7 @@ mcphost -m deepseek:deepseek-chat
 - `/tools`：列出所有可用工具
 - `/servers`：列出配置的 MCP 服务器
 - `/history`：显示对话历史
+- `/exclude_tool tool_name`: 在对话中去掉某个tool
 - `Ctrl+C`：任何时候都可以退出
 
 ## MCP 服务器兼容性 🔌
