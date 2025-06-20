@@ -187,7 +187,8 @@ class ChatSession:
 
     async def cleanup_servers(self) -> None:
         """Clean up all servers properly."""
-        for name, server in self.servers.items():
+        # cleanup must follow the FIFO: https://github.com/modelcontextprotocol/python-sdk/issues/577
+        for name, server in reversed(list(self.servers.items())):
             log.info(f"Shutting down MCP server: [{name}]")
             await server.cleanup()
 

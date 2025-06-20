@@ -122,6 +122,8 @@ async def stdio_client(server: StdioServerParameters):
         await write_stream.aclose()
         await read_stream_writer.aclose()
         await write_stream_reader.aclose()
+        await read_stream_err.aclose()
+        await read_stream_writer_err.aclose()
         raise
 
     async def stdout_reader():
