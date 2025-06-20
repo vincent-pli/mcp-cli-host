@@ -286,7 +286,7 @@ class ChatSession:
 
                     await self.run_promt(
                         provider=provider,
-                        prompt=user_input,
+                        prompt=user_input
                     )
 
                 except KeyboardInterrupt:
