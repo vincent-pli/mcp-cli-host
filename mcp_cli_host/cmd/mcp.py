@@ -29,7 +29,7 @@ class Server:
         self._cleanup_lock: asyncio.Lock = asyncio.Lock()
         self.exit_stack: AsyncExitStack = AsyncExitStack()
 
-    async def initialize(self, debug_model: bool = False, provider: Provider = None, roots: list[str] = None) -> None:
+    async def initialize(self, debug_model: bool = False, provider: Provider = None, roots: list[str] = None) -> types.InitializeResult | None:
         """Initialize the server connection."""
         try:
             stdio_transport = await self.exit_stack.enter_async_context(
@@ -56,6 +56,7 @@ class Server:
                 await session.set_logging_level("debug")
 
             self.session = session
+            return initialize_result
         except Exception as e:
             log.error(f"Error initializing server {self.name}: {e}")
             await self.cleanup()

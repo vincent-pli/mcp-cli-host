@@ -7,7 +7,7 @@ from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
-from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages
+from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages, format_server_card
 from mcp import types, StdioServerParameters
 import json
 import logging
@@ -55,7 +55,7 @@ class ChatSession:
                     if excluded:
                         console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
                     else:
-                        console.print(f"  [bright_cyan]🔧 {tool_name}[/bright_cyan]")
+                        console.print(f"  [bright_cyan] 🔧 {tool_name}[/bright_cyan]")
                     console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
                 console.print("\n")
 
@@ -248,8 +248,10 @@ class ChatSession:
         for name, server in self.servers.items():
             try:
                 log.info(f"Initializing server... [{name}]")
-                await server.initialize(self.debug_model, provider, self.roots)
+                initialize_result: types.InitializeResult = await server.initialize(self.debug_model, provider, self.roots)
+                print(initialize_result)
                 log.info(f"Server connected: [{name}]")
+                console.print(Markdown(format_server_card(initialize_result)))
             except Exception as e:
                 await self.cleanup_servers()
                 raise RuntimeError(

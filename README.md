@@ -14,12 +14,11 @@ English | [简体中文](./README-zh.md)
 - Dynamic tool discovery and integration
 - Tool calling capabilities for both model types
 - Configurable MCP server locations and arguments
-- Consistent command interface across model types
 - Configurable message history window for context management
 - Monitor/trace error from server side
-- Support sampling
-- Support Roots
+- Support sampling, Roots
 - Support runtime exclude specific tool
+- Show MCP server card when connected
 
 
 ## Environment Setup 🔧

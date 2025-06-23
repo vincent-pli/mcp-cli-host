@@ -1,4 +1,5 @@
 from mcp_cli_host.llm.models import GenericMsg
+from mcp import types
 
 CLEAR_RIGHT = "\033[K"
 PREV_LINE = "\033[F"
@@ -35,3 +36,44 @@ def prune_messages(messages: list[GenericMsg], message_window: int) -> list[Gene
         return messages[1:]
     else:
         return messages[2:]
+
+SERVER_CARD = """
+
+---
+
+**MCP Server Card**    
+*Protocol Version*: {protocol_version}     
+*Server Name*: {name}    
+*Version*: {version}   
+*Capabilities*:
+- {tool_enable} Tools
+- {prompts_enable} Prompts
+- {resources_enable} Rsources
+- {logging_enable} Logging   
+---
+
+"""
+
+def format_server_card(initialize_result: types.InitializeResult) -> str:
+    name = initialize_result.serverInfo.name
+    version = initialize_result.serverInfo.version
+    protocol_version = initialize_result.protocolVersion
+
+    tool_enable = "✅" if initialize_result.capabilities.tools else "🚫"
+    prompts_enable = "✅" if initialize_result.capabilities.prompts else "🚫"
+    resources_enable = "✅" if initialize_result.capabilities.resources else "🚫"
+    logging_enable = "✅" if initialize_result.capabilities.logging else "🚫"
+
+    return SERVER_CARD.format(
+        name=name,
+        version=version,
+        tool_enable=tool_enable,
+        prompts_enable=prompts_enable,
+        resources_enable=resources_enable,
+        logging_enable=logging_enable,
+        protocol_version=protocol_version,
+    )
+
+
+
+
