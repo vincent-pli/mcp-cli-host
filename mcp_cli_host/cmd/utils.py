@@ -48,7 +48,7 @@ SERVER_CARD = """
 *Capabilities*:
 - {tool_enable} Tools
 - {prompts_enable} Prompts
-- {resources_enable} Rsources
+- {resources_enable} Resources
 - {logging_enable} Logging   
 ---
 
