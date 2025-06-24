@@ -52,6 +52,10 @@ class ChatSession:
         if prompt.lower().strip() == "/tools":
             for name, server in self.servers.items():
                 console.print(f"[magenta]💻 {name}[/magenta]")
+                if not self.initialize_results.get(name).capabilities.tools:
+                    console.print(f"  [red] 🚫 Server {name} does not support tools.[/red]\n")
+                    continue
+
                 for tool in await server.list_tools():
                     excluded = tool.name in self.excluded_tools
                     tool_name = tool.name.split("__")[1]
@@ -324,9 +328,9 @@ class ChatSession:
         for name, server in self.servers.items():
             if not server:
                 raise RuntimeError(f"Server {name} not initialized")
-
-            tools_response: list[types.Tool] = await server.list_tools()
-            tools.extend(tools_response)
+            if self.initialize_results.get(name).capabilities.tools:
+                tools_response: list[types.Tool] = await server.list_tools()
+                tools.extend(tools_response)
 
         log.info(f"Tools loaded, total count: {len(tools)}")
         self.tools = tools
