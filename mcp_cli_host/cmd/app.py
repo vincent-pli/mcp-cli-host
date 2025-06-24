@@ -91,6 +91,7 @@ class ChatSession:
             return True
 
         if prompt.lower().startswith("/resources"):
+            resources: dict[str, list[str]] = defaultdict(list)
             for name, server in self.servers.items():
                 console.print(f"[magenta] 📚 {name}[/magenta]")
                 if not self.initialize_results.get(name).capabilities.resources:
@@ -98,7 +99,7 @@ class ChatSession:
                     continue
                 
                 for resource in await server.list_resources():
-                    self.resources[str(resource.uri)].append(server.name)
+                    resources[str(resource.uri)].append(server.name)
 
                     resource_name = resource.name.split("__")[1]
                     console.print(f"  [bright_cyan] 📖 {resource_name}[/bright_cyan]")
@@ -106,6 +107,7 @@ class ChatSession:
                     console.print(f"    [bright_blue] [bright_cyan]URI[/bright_cyan]: {resource.uri}[/bright_blue]")
                     console.print(f"    [bright_blue] [bright_cyan]size[/bright_cyan]: {resource.size}[/bright_blue]")
                 console.print("\n")
+            self.resources = resources
             return True
         
         if prompt.lower().startswith("/get_resource"):
@@ -310,7 +312,6 @@ class ChatSession:
             try:
                 log.info(f"Initializing server... [{name}]")
                 initialize_result: types.InitializeResult = await server.initialize(self.debug_model, provider, self.roots)
-                print(initialize_result)
                 log.info(f"Server connected: [{name}]")
                 console.print(Markdown(format_server_card(initialize_result)))
                 self.initialize_results[name] = initialize_result
@@ -329,6 +330,18 @@ class ChatSession:
 
         log.info(f"Tools loaded, total count: {len(tools)}")
         self.tools = tools
+        
+        resources: dict[str, list[str]] = defaultdict(list)
+        for name, server in self.servers.items():
+            if not server:
+                raise RuntimeError(f"Server {name} not initialized")
+
+            if self.initialize_results.get(name).capabilities.resources:
+                for resource in await server.list_resources():
+                    resources[str(resource.uri)].append(server.name)
+        self.resources = resources
+        log.info(f"Resources loaded, total count: {len(resources)}")
+
         try:
             while True:
                 try:
