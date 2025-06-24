@@ -12,6 +12,7 @@ import shutil
 import logging
 from mcp_cli_host.llm.base_provider import Provider
 from rich.console import Console
+from pydantic import AnyUrl
 
 console = Console()
 
@@ -124,6 +125,76 @@ class Server:
                 attempt += 1
                 log.warning(
                     f"Error executing tool: {e}. Attempt {attempt} of {retries}."
+                )
+                if attempt < retries:
+                    log.info(f"Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                else:
+                    log.error("Max retries reached. Failing.")
+                    raise
+
+    async def list_resources(self) -> list[types.Resource]:
+        """List available resources from the server.
+
+        Returns:
+            A list of available resources.
+
+        Raises:
+            RuntimeError: If the server is not initialized.
+        """
+        if not self.session:
+            raise RuntimeError(f"Server {self.name} not initialized")
+
+        resources_response: types.ListResourcesResult = await self.session.list_resources()
+        resources: list[types.Resource] = []
+
+        for resource in resources_response.resources:
+            resources.append(
+                types.Resource(
+                    name=f"{self.name}__{resource.name}",
+                    description=resource.description,
+                    uri=resource.uri,
+                    size=resource.size,
+                )
+            )
+
+        return resources
+
+    async def get_resource(
+        self,
+        uri: str,
+        retries: int = 2,
+        delay: float = 1.0,
+    ) -> types.ReadResourceResult:
+        """Read a resource with retry mechanism.
+
+        Args:
+            uri: uri of the resource to read.
+            retries: Number of retry attempts.
+            delay: Delay between retries in seconds.
+
+        Returns:
+            read resource result.
+
+        Raises:
+            RuntimeError: If server is not initialized.
+            Exception: If tool execution fails after all retries.
+        """
+        if not self.session:
+            raise RuntimeError(f"Server {self.name} not initialized")
+
+        attempt = 0
+        while attempt < retries:
+            try:
+                log.info(f":📖:read resource: [{uri}]...")
+                result: types.ReadResourceRequest = await self.session.read_resource(AnyUrl(uri))
+
+                return result
+
+            except Exception as e:
+                attempt += 1
+                log.warning(
+                    f"Error reading resource: {e}. Attempt {attempt} of {retries}."
                 )
                 if attempt < retries:
                     log.info(f"Retrying in {delay} seconds...")

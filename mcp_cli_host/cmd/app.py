@@ -18,6 +18,7 @@ from rich.highlighter import NullHighlighter
 import os
 from rich.markdown import Markdown
 import traceback
+from collections import defaultdict
 
 log = logging.getLogger("mcp_cli_host")
 
@@ -41,6 +42,8 @@ class ChatSession:
         self.roots = roots
         self.tools: list[types.Tool] = []
         self.excluded_tools: list[str] = []
+        self.initialize_results: dict[str, types.InitializeResult] = {}
+        self.resources = defaultdict(list)
 
     async def handle_slash_command(self, prompt: str) -> bool:
         if not prompt.startswith("/"):
@@ -76,9 +79,6 @@ class ChatSession:
                 console.print(f"[while]Arguments[while] [green]{server.config.args}\n\n")
             return True
         
-        if prompt.lower().strip() == "/quit":
-            raise KeyboardInterrupt()
-        
         if prompt.lower().startswith("/exclude_tool"):
             if len(prompt.split()) < 2:
                 console.print("[red][bold]ERROR[/bold]: Missing tool name to exclude[/red]\n")
@@ -90,6 +90,67 @@ class ChatSession:
             console.print(f"[green]Tool '{tool_name}' excluded successfully.[/green]\n")
             return True
 
+        if prompt.lower().startswith("/resources"):
+            for name, server in self.servers.items():
+                console.print(f"[magenta] 📚 {name}[/magenta]")
+                if not self.initialize_results.get(name).capabilities.resources:
+                    console.print(f"  [red] 🚫 Server {name} does not support resources.[/red]\n")
+                    continue
+                
+                for resource in await server.list_resources():
+                    self.resources[str(resource.uri)].append(server.name)
+
+                    resource_name = resource.name.split("__")[1]
+                    console.print(f"  [bright_cyan] 📖 {resource_name}[/bright_cyan]")
+                    console.print(f"    [bright_blue] {resource.description}[/bright_blue]")
+                    console.print(f"    [bright_blue] [bright_cyan]URI[/bright_cyan]: {resource.uri}[/bright_blue]")
+                    console.print(f"    [bright_blue] [bright_cyan]size[/bright_cyan]: {resource.size}[/bright_blue]")
+                console.print("\n")
+            return True
+        
+        if prompt.lower().startswith("/get_resource"):
+            if len(prompt.split()) < 2:
+                console.print("[red][bold]ERROR[/bold]: Missing resource URI to get[/red]\n")
+                return True
+            
+            server_input = None
+            uri = prompt.split()[1]
+            if "__" in uri:
+                server_input, uri = uri.split("__")  # Handle server__uri format
+
+            server_name = self.resources[uri]
+            if len(server_name) == 0:
+                console.print(f"[red][bold]ERROR[/bold]: Resource {uri} not found in any server.[/red]\n")
+                return True
+            
+            if len(server_name) > 1 and not server_input:
+                console.print(f"[yellow]Multiple servers found for resource {uri}: {', '.join(server_name)}[/yellow]\n")
+                console.print(f"[yellow]Please use '__' to link server name and uri and try again, like this: server__{uri}[/yellow]\n")
+                return True
+            
+            if server_input and server_input not in server_name:
+                console.print(f"[red][bold]ERROR[/bold]: Server {server_input} not found for resource {uri}.[/red]\n")
+
+            server_name = server_input if server_input else server_name[0]
+            server = self.servers.get(server_name, None)
+            if not server:
+                console.print(f"[red][bold]ERROR[/bold]: Server {server_name} not found.[/red]\n")
+                return True
+                
+            try:
+                resource = await server.get_resource(uri)
+                console.print(f"[green]Succeed get {len(resource.contents)} items from Server: '{server_name}' with URI: {uri}\n")
+                # Check if the resource content is of type TextResourceContents
+                for index, content in enumerate(resource.contents):
+                    if isinstance(content, types.TextResourceContents):
+                        markdown_text = f"{index}. : {content.text}"
+                        console.print(Markdown(markdown_text))
+            except Exception as e:
+                console.print(f"[red]Error fetching resource from {server_name}: {e}[/red]\n")
+            return True
+
+        if prompt.lower().strip() == "/quit":
+            raise KeyboardInterrupt()
         
         console.print(f"[red][bold]ERROR[/bold]: Unkonw command: {prompt}[/red]\nType /help to see available commands\n\n")
         return True
@@ -252,6 +313,7 @@ class ChatSession:
                 print(initialize_result)
                 log.info(f"Server connected: [{name}]")
                 console.print(Markdown(format_server_card(initialize_result)))
+                self.initialize_results[name] = initialize_result
             except Exception as e:
                 await self.cleanup_servers()
                 raise RuntimeError(
