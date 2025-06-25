@@ -7,8 +7,8 @@ from mcp_cli_host.llm.base_provider import Provider
 from mcp_cli_host.llm.models import Role, CallToolResultWithID, TextContent
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
-from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages, format_server_card
-from mcp import types, StdioServerParameters
+from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages, format_server_card, generated_tools_from_resource_templates, COMMON_SEPERATOR
+from mcp import types, StdioServerParameters, shared
 import json
 import logging
 import asyncio
@@ -41,6 +41,7 @@ class ChatSession:
         self.history_message: list[GenericMsg] = []
         self.roots = roots
         self.tools: list[types.Tool] = []
+        self.resource_tools: list[types.Tool] = []
         self.excluded_tools: list[str] = []
         self.initialize_results: dict[str, types.InitializeResult] = {}
         self.resources = defaultdict(list)
@@ -58,7 +59,7 @@ class ChatSession:
 
                 for tool in await server.list_tools():
                     excluded = tool.name in self.excluded_tools
-                    tool_name = tool.name.split("__")[1]
+                    tool_name = tool.name.split(COMMON_SEPERATOR)[1]
                     if excluded:
                         console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
                     else:
@@ -95,7 +96,6 @@ class ChatSession:
             return True
 
         if prompt.lower().startswith("/resources"):
-            resources: dict[str, list[str]] = defaultdict(list)
             for name, server in self.servers.items():
                 console.print(f"[magenta] 📚 {name}[/magenta]")
                 if not self.initialize_results.get(name).capabilities.resources:
@@ -103,15 +103,13 @@ class ChatSession:
                     continue
                 
                 for resource in await server.list_resources():
-                    resources[str(resource.uri)].append(server.name)
 
-                    resource_name = resource.name.split("__")[1]
+                    resource_name = resource.name.split(COMMON_SEPERATOR)[1]
                     console.print(f"  [bright_cyan] 📖 {resource_name}[/bright_cyan]")
                     console.print(f"    [bright_blue] {resource.description}[/bright_blue]")
                     console.print(f"    [bright_blue] [bright_cyan]URI[/bright_cyan]: {resource.uri}[/bright_blue]")
                     console.print(f"    [bright_blue] [bright_cyan]size[/bright_cyan]: {resource.size}[/bright_blue]")
                 console.print("\n")
-            self.resources = resources
             return True
         
         if prompt.lower().startswith("/get_resource"):
@@ -121,8 +119,8 @@ class ChatSession:
             
             server_input = None
             uri = prompt.split()[1]
-            if "__" in uri:
-                server_input, uri = uri.split("__")  # Handle server__uri format
+            if COMMON_SEPERATOR in uri:
+                server_input, uri = uri.split(COMMON_SEPERATOR)  # Handle server--uri format
 
             server_name = self.resources[uri]
             if len(server_name) == 0:
@@ -131,7 +129,7 @@ class ChatSession:
             
             if len(server_name) > 1 and not server_input:
                 console.print(f"[yellow]Multiple servers found for resource {uri}: {', '.join(server_name)}[/yellow]\n")
-                console.print(f"[yellow]Please use '__' to link server name and uri and try again, like this: server__{uri}[/yellow]\n")
+                console.print(f"[yellow]Please use '{COMMON_SEPERATOR}' to link server name and uri and try again, like this: server{COMMON_SEPERATOR}{uri}[/yellow]\n")
                 return True
             
             if server_input and server_input not in server_name:
@@ -208,8 +206,7 @@ class ChatSession:
             id = tool_call.id
             name = tool_call.name
             arguments = tool_call.arguments
-
-            server_name, tool_name = name.split("__")
+            server_name, tool_name = name.split(COMMON_SEPERATOR)
             if not server_name or not tool_name:
                 raise ValueError(f"Invalid tool name format: {name}")
 
@@ -335,6 +332,23 @@ class ChatSession:
         log.info(f"Tools loaded, total count: {len(tools)}")
         self.tools = tools
         
+        # Treat resource_templates(not resources) as specific tools, similar to GET endpoints in a REST API. 
+        resource_tools: list[types.Tool] = []
+        for name, server in self.servers.items():
+            if not server:
+                raise RuntimeError(f"Server {name} not initialized")
+            if self.initialize_results.get(name).capabilities.resources:
+                try:
+                    resource_templates: list[types.ResourceTemplate] = await server.list_resource_templates()
+                    resource_tools.extend(generated_tools_from_resource_templates(name, resource_templates))
+                except shared.exceptions.McpError as e:
+                    log.info(f"Server {name} does not support resource templates: {e}")
+                    continue
+
+        self.tools.extend(resource_tools)
+        log.info(f"Resource tools generated, total count: {len(resource_tools)}")
+        self.resource_tools = resource_tools
+
         resources: dict[str, list[str]] = defaultdict(list)
         for name, server in self.servers.items():
             if not server:
