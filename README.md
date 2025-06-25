@@ -16,10 +16,12 @@ English | [简体中文](./README-zh.md)
 - Configurable MCP server locations and arguments
 - Configurable message history window for context management
 - Monitor/trace error from server side
-- Support sampling, Roots
+- Support sampling, Roots, Resource
 - Support runtime exclude specific tool
 - Show MCP server card when connected
 
+## Latest Update 💌
+- [2025-06-10] Deal with `Resource` in MCP server: [link](./docs/resource_templates_implements.md)
 
 ## Environment Setup 🔧
 
