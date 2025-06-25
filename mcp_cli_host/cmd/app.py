@@ -53,18 +53,31 @@ class ChatSession:
         if prompt.lower().strip() == "/tools":
             for name, server in self.servers.items():
                 console.print(f"[magenta]💻 {name}[/magenta]")
-                if not self.initialize_results.get(name).capabilities.tools:
+                if not self.initialize_results.get(name).capabilities.tools and len(self.resource_tools) == 0:
                     console.print(f"  [red] 🚫 Server {name} does not support tools.[/red]\n")
                     continue
-
-                for tool in await server.list_tools():
-                    excluded = tool.name in self.excluded_tools
-                    tool_name = tool.name.split(COMMON_SEPERATOR)[1]
-                    if excluded:
-                        console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
-                    else:
-                        console.print(f"  [bright_cyan] 🔧 {tool_name}[/bright_cyan]")
-                    console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
+                
+                if self.initialize_results.get(name).capabilities.tools:
+                    for tool in await server.list_tools():
+                        excluded = tool.name in self.excluded_tools
+                        tool_name = tool.name.split(COMMON_SEPERATOR)[1]
+                        if excluded:
+                            console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
+                        else:
+                            console.print(f"  [bright_cyan] 🔧 {tool_name}[/bright_cyan]")
+                        console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
+                
+                if len(self.resource_tools) > 0:
+                    resource_tools = [
+                        tool for tool in self.resource_tools if tool.name.startswith(name + COMMON_SEPERATOR)]
+                    for tool in resource_tools:
+                        excluded = tool.name in self.excluded_tools
+                        tool_name = tool.name.split(COMMON_SEPERATOR)[1]
+                        if excluded:
+                            console.print(f"  [bright_red] 🚫 {tool_name} (excluded)[/bright_red]")
+                        else:
+                            console.print(f"  [bright_cyan] 🔧 {tool_name} (by resource templates)[/bright_cyan]")
+                        console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
                 console.print("\n")
 
             return True
@@ -347,6 +360,9 @@ class ChatSession:
 
         self.tools.extend(resource_tools)
         log.info(f"Resource tools generated, total count: {len(resource_tools)}")
+        console.print(
+            f"[green bold]💌 Extral tools from 'resource templates' generated, count: {len(resource_tools)}. you can check the defails by command: '/tools'[/green bold]")
+        
         self.resource_tools = resource_tools
 
         resources: dict[str, list[str]] = defaultdict(list)
