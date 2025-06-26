@@ -169,6 +169,24 @@ class ChatSession:
         if prompt.lower().strip() == "/quit":
             raise KeyboardInterrupt()
         
+        if prompt.lower().strip() == "/prompts":
+            for name, server in self.servers.items():
+                console.print(f"[magenta] 📑 {name}[/magenta]")
+                if not self.initialize_results.get(name).capabilities.prompts:
+                    console.print(f"  [red] 🚫 Server {name} does not support prompts.[/red]\n")
+                    continue
+                
+                for prot in await server.list_prompts():
+                    prompt_name = prot.name.split(COMMON_SEPERATOR)[1]
+                    console.print(f"  [bright_cyan] 📄 {prompt_name}[/bright_cyan]")
+                    console.print(f"    [bright_blue] {prot.description}[/bright_blue]")
+                    for argument in prot.arguments:
+                        console.print(f"      [bright_yellow][bright_cyan]{argument.name}[/bright_cyan]: {'(Required)' if argument.required else '(optional)'}[/bright_yellow]")
+                        console.print(f"      [bright_blue]{argument.description}[/bright_blue]")
+
+                console.print("\n")
+            return True
+        
         console.print(f"[red][bold]ERROR[/bold]: Unkonw command: {prompt}[/red]\nType /help to see available commands\n\n")
         return True
 

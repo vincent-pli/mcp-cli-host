@@ -257,6 +257,32 @@ class Server:
                     log.error("Max retries reached. Failing.")
                     raise
 
+    async def list_prompts(self) -> list[types.Prompt]:
+        """List available prompts from the server.
+
+        Returns:
+            A list of available prompts.
+
+        Raises:
+            RuntimeError: If the server is not initialized.
+        """
+        if not self.session:
+            raise RuntimeError(f"Server {self.name} not initialized")
+
+        prompts_response: types.ListPromptsResult = await self.session.list_prompts()
+        prompts: list[types.Prompt] = []
+
+        for prompt in prompts_response.prompts:
+            prompts.append(
+                types.Prompt(
+                    name=f"{self.name}{COMMON_SEPERATOR}{prompt.name}",
+                    description=prompt.description,
+                    arguments=prompt.arguments,
+                )
+            )
+
+        return prompts
+    
     async def cleanup(self) -> None:
         """Clean up server resources."""
         async with self._cleanup_lock:

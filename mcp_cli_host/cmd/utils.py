@@ -12,6 +12,9 @@ MARKDOWN = """
 The following commands are available:
 - **/help**: Show this help message
 - **/tools**: List all available tools
+- **/resources**: List all available resources
+- **/get_resource**: Get specific resources by uri, example: `/get_resource resource_uri`
+- **/prompts**: List all available prompts
 - **/servers**: List configured MCP servers
 - **/history**: Display conversation history
 - **/quit**: Exit the application
