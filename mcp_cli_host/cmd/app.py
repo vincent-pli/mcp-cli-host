@@ -358,11 +358,12 @@ class ChatSession:
                     log.info(f"Server {name} does not support resource templates: {e}")
                     continue
 
-        self.tools.extend(resource_tools)
-        log.info(f"Resource tools generated, total count: {len(resource_tools)}")
-        console.print(
-            f"[green bold]💌 Extral tools from 'resource templates' generated, count: {len(resource_tools)}. you can check the defails by command: '/tools'[/green bold]")
-        
+        if len(resource_tools) > 0:
+            self.tools.extend(resource_tools)
+            log.info(f"Resource tools generated, total count: {len(resource_tools)}")
+            console.print(
+                f"[green bold]💌 Extral tools from 'resource templates' generated, count: {len(resource_tools)}. you can check the defails by command: '/tools'[/green bold]")
+            
         self.resource_tools = resource_tools
 
         resources: dict[str, list[str]] = defaultdict(list)
