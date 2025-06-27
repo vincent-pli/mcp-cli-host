@@ -9,12 +9,13 @@
 - 在模型类型之间提供一致的命令接口
 - 可配置的消息历史窗口，用于上下文管理
 - 监控和跟踪来自server端的错误
-- 支持sampling, Roots, Resources
+- 支持sampling, Roots, Resources, Prompts
 - 支持对话中去掉某个tool
 - 当mcp server链接成功后，展示其信息card
 
 ## 最新更新 💌
-- [2025-06-10] 针对Server的Resource templates的实现和想法: [link](./docs/zh/resource_templates_implements.md)
+- [2025-06-27] 使用Server的Prompts: [Link](./docs/zh/prompts_usage.md)
+- [2025-06-20] 针对Server的Resource templates的实现和想法: [Link](./docs/zh/resource_templates_implements.md)
 
 ## 环境设置 🔧
 1. 对于 Openai 和 Deepseek:

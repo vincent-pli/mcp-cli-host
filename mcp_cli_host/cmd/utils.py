@@ -16,6 +16,7 @@ The following commands are available:
 - **/resources**: List all available resources
 - **/get_resource**: Get specific resources by uri, example: `/get_resource resource_uri`
 - **/prompts**: List all available prompts
+- **/get_prompt**: Get specific prompt by name, example: `/get_prompt prompt_name`
 - **/servers**: List configured MCP servers
 - **/history**: Display conversation history
 - **/quit**: Exit the application
