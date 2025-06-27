@@ -19,6 +19,7 @@ import os
 from rich.markdown import Markdown
 import traceback
 from collections import defaultdict
+from typing import Tuple, Union, List, Literal
 
 log = logging.getLogger("mcp_cli_host")
 
@@ -45,10 +46,15 @@ class ChatSession:
         self.excluded_tools: list[str] = []
         self.initialize_results: dict[str, types.InitializeResult] = {}
         self.resources = defaultdict(list)
+        self.prompts: list[types.Prompt] = []
 
-    async def handle_slash_command(self, prompt: str) -> bool:
+    async def handle_slash_command(self, prompt: str) -> Union[
+        Tuple[Literal[True], None],
+        Tuple[Literal[False], None],
+        Tuple[Literal[True], List[any]]
+    ]:
         if not prompt.startswith("/"):
-            return False
+            return (False, None)
         
         if prompt.lower().strip() == "/tools":
             for name, server in self.servers.items():
@@ -80,33 +86,33 @@ class ChatSession:
                         console.print(f"    [bright_blue] {tool.description}[/bright_blue]")
                 console.print("\n")
 
-            return True
+            return (True, None)
         
         if prompt.lower().strip() == "/help":
             console.print(Markdown(MARKDOWN))
-            return True
+            return (True, None)
         
         if prompt.lower().strip() == "/history":
             console.print(self.history_message)
-            return True
+            return (True, None)
         
         if prompt.lower().strip() == "/servers":
             for name, server in self.servers.items():
                 console.print(f"\n\n[magenta]💻 {name}[/magenta]\n")
                 console.print(f"[while]Command[while] [green]{server.config.command}\n")
                 console.print(f"[while]Arguments[while] [green]{server.config.args}\n\n")
-            return True
+            return (True, None)
         
         if prompt.lower().startswith("/exclude_tool"):
             if len(prompt.split()) < 2:
                 console.print("[red][bold]ERROR[/bold]: Missing tool name to exclude[/red]\n")
-                return True
+                return (True, None)
             
             tool_name = prompt.split()[1]
             self.excluded_tools.extend([tool.name for tool in self.tools if tool.name.endswith(tool_name)])
             self.tools = [tool for tool in self.tools if not tool.name.endswith(tool_name)]
             console.print(f"[green]Tool '{tool_name}' excluded successfully.[/green]\n")
-            return True
+            return (True, None)
 
         if prompt.lower().startswith("/resources"):
             for name, server in self.servers.items():
@@ -123,12 +129,12 @@ class ChatSession:
                     console.print(f"    [bright_blue] [bright_cyan]URI[/bright_cyan]: {resource.uri}[/bright_blue]")
                     console.print(f"    [bright_blue] [bright_cyan]size[/bright_cyan]: {resource.size}[/bright_blue]")
                 console.print("\n")
-            return True
+            return (True, None)
         
         if prompt.lower().startswith("/get_resource"):
             if len(prompt.split()) < 2:
                 console.print("[red][bold]ERROR[/bold]: Missing resource URI to get[/red]\n")
-                return True
+                return (True, None)
             
             server_input = None
             uri = prompt.split()[1]
@@ -138,21 +144,22 @@ class ChatSession:
             server_name = self.resources[uri]
             if len(server_name) == 0:
                 console.print(f"[red][bold]ERROR[/bold]: Resource {uri} not found in any server.[/red]\n")
-                return True
+                return (True, None)
             
             if len(server_name) > 1 and not server_input:
                 console.print(f"[yellow]Multiple servers found for resource {uri}: {', '.join(server_name)}[/yellow]\n")
                 console.print(f"[yellow]Please use '{COMMON_SEPERATOR}' to link server name and uri and try again, like this: server{COMMON_SEPERATOR}{uri}[/yellow]\n")
-                return True
+                return (True, None)
             
             if server_input and server_input not in server_name:
                 console.print(f"[red][bold]ERROR[/bold]: Server {server_input} not found for resource {uri}.[/red]\n")
+                return (True, None)
 
             server_name = server_input if server_input else server_name[0]
             server = self.servers.get(server_name, None)
             if not server:
                 console.print(f"[red][bold]ERROR[/bold]: Server {server_name} not found.[/red]\n")
-                return True
+                return (True, None)
                 
             try:
                 resource = await server.get_resource(uri)
@@ -164,7 +171,7 @@ class ChatSession:
                         console.print(Markdown(markdown_text))
             except Exception as e:
                 console.print(f"[red]Error fetching resource from {server_name}: {e}[/red]\n")
-            return True
+            return (True, None)
 
         if prompt.lower().strip() == "/quit":
             raise KeyboardInterrupt()
@@ -185,14 +192,118 @@ class ChatSession:
                         console.print(f"      [bright_blue]{argument.description}[/bright_blue]")
 
                 console.print("\n")
-            return True
+            return (True, None)
+        
+        if prompt.lower().strip().startswith("/get_prompt"):
+            if len(prompt.split()) < 2:
+                console.print("[red][bold]ERROR[/bold]: Missing prompt name to get[/red]\n")
+                return (True, None)
+            
+            server_input = None
+            name = prompt.split()[1]
+            if COMMON_SEPERATOR in name:
+                server_input, name = name.split(COMMON_SEPERATOR)  # Handle server--name format
+
+            candidate_prompts = [
+               prot for prot in self.prompts if prot.name.endswith(name)]
+            
+            if len(candidate_prompts) == 0:
+                console.print(f"[red][bold]ERROR[/bold]: Prompt {name} not found in any server.[/red]\n")
+                return (True, None)
+            
+            if len(candidate_prompts) > 1 and not server_input:
+                console.print(f"[yellow]Multiple servers found for prompt {name}: {', '.join(server_name)}[/yellow]\n")
+                console.print(f"[yellow]Please use '{COMMON_SEPERATOR}' to link server name and prompt name and try again, like this: server{COMMON_SEPERATOR}{name}[/yellow]\n")
+                return (True, None)
+            
+            if server_input and server_input not in server_name:
+                console.print(f"[red][bold]ERROR[/bold]: Server {server_input} not found for prompt {name}.[/red]\n")
+                return (True, None)
+
+            server_name = server_input if server_input else candidate_prompts[0].name.split(COMMON_SEPERATOR)[0]
+            server = self.servers.get(server_name, None)
+            if not server:
+                console.print(f"[red][bold]ERROR[/bold]: Server {server_name} not found.[/red]\n")
+                return (True, None)
+                
+            try:
+                target_prompt = candidate_prompts[0]
+                args: dict[str, str] = {}
+                prompt_messages: list[types.PromptMessage] = []
+                while True:
+                    try:
+                        if target_prompt.arguments and len(target_prompt.arguments) > 0:
+                            console.print(f"[bold magenta]To get prompt: [bright_blue]{target_prompt.name}[/bright_blue], you need fill arguments of the prompt: [bright_blue]{[arg.name for arg in target_prompt.arguments]}[/bright_blue][/bold magenta]")
+                            for arg in target_prompt.arguments:
+                                user_input = console.input(
+                                    f"[bold magenta]Please input value for argument [bright_blue]'{arg.name}'[/bright_blue] (required: [bright_blue]{arg.required}[/bright_blue], description: [bright_blue]{arg.description}[/bright_blue]):\n[/bold magenta]")
+                                
+                                if not user_input and arg.required:
+                                    console.print(f"[red]Argument '{arg.name}' is required, please input a value.[/red]")
+                                    continue
+                                
+                                # Fill the argument value
+                                args[arg.name] = user_input
+
+                        prompt_result: types.GetPromptResult = await server.get_prompt(
+                            name=target_prompt.name.split(COMMON_SEPERATOR)[1],
+                            arguments=args
+                        )
+                        prompt_messages = prompt_result.messages
+                        messages_rec = json.dumps(
+                            [msg.model_dump() for msg in prompt_messages], indent=2, ensure_ascii=False)
+                        console.print(f"[green]Succeed get prompt from Server: '{server_name}' with name: {target_prompt.name}\n")   
+                        console.print(messages_rec)
+                        break
+                    except KeyboardInterrupt:
+                        console.print("\n")
+                        return (True, None)
+                    except Exception:
+                        raise
+
+                while True:
+                    try:
+                        user_confirmation = console.input(
+                            "[bold magenta]Do you want send above messages to LLM? (Type 'yes' for send, 'no' for quit): [/bold magenta]")
+                        print(f"{PREV_LINE}{CLEAR_RIGHT}")
+
+                        if not user_confirmation:
+                            continue
+
+                        if user_confirmation != "yes" and user_confirmation != "no":
+                            continue
+
+                        console.print(
+                            f" 🤠 [bold bright_yellow]You[/bold bright_yellow]: [bold bright_white]{user_confirmation}[/bold bright_white]")
+
+                        if user_confirmation == "yes":
+                            messages: list[any] = []
+                            for message in prompt_messages:
+                                new_msg = {
+                                    "role": message.role,
+                                    "content": message.content.text if isinstance(message.content, types.TextContent) else message.content.model_dump(),
+                                }
+                                messages.append(new_msg)
+                            return (False, messages)
+                        else:
+                            return (True, None)
+                    except KeyboardInterrupt:
+                        console.print("\n")
+                        return (True, None)
+                    except Exception:
+                        raise
+
+            except Exception as e:
+                console.print(f"[red]Error fetching prompt from {server_name}: {e}[/red]\n")
+            return (True, None)
         
         console.print(f"[red][bold]ERROR[/bold]: Unkonw command: {prompt}[/red]\nType /help to see available commands\n\n")
-        return True
+        return (True, None)
 
     async def run_promt(self,
                         provider: Provider,
-                        prompt: str):
+                        prompt: str,
+                        messages: list[any] = None) -> None:
 
         if prompt != "":
             message = {
@@ -204,6 +315,12 @@ class ChatSession:
             self.history_message.append(
                 GenericMsg(message_content=json.dumps(message))
             )
+
+        if messages:
+            # If messages are provided, add them to the history
+            self.history_message.extend([
+                GenericMsg(message_content=json.dumps(msg)) for msg in messages
+            ])
 
         with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
             try:
@@ -395,6 +512,17 @@ class ChatSession:
         self.resources = resources
         log.info(f"Resources loaded, total count: {len(resources)}")
 
+        prompts: list[types.Prompt] = []
+        for name, server in self.servers.items():
+            if not server:
+                raise RuntimeError(f"Server {name} not initialized")
+
+            if self.initialize_results.get(name).capabilities.prompts:
+                for prompt in await server.list_prompts():
+                    prompts.append(prompt)
+        self.prompts = prompts
+        log.info(f"Prompts loaded, total count: {len(prompts)}")
+
         try:
             while True:
                 try:
@@ -410,13 +538,15 @@ class ChatSession:
                     if user_input in ["quit", "exit"]:
                         console.print("\nGoodbye")
                         break
-
-                    if await self.handle_slash_command(prompt=user_input):
+                    
+                    state, prompt_messages = await self.handle_slash_command(prompt=user_input)
+                    if state:
                         continue
 
                     await self.run_promt(
                         provider=provider,
-                        prompt=user_input
+                        prompt=user_input,
+                        messages=prompt_messages
                     )
 
                 except KeyboardInterrupt:

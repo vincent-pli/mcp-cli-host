@@ -12,13 +12,14 @@ MARKDOWN = """
 The following commands are available:
 - **/help**: Show this help message
 - **/tools**: List all available tools
+- **/exclude_tool**: Exclude specific tool from the conversation, example: `/exclude_tool tool_name`
 - **/resources**: List all available resources
 - **/get_resource**: Get specific resources by uri, example: `/get_resource resource_uri`
 - **/prompts**: List all available prompts
 - **/servers**: List configured MCP servers
 - **/history**: Display conversation history
 - **/quit**: Exit the application
-- **/exclude_tool**: Exclude specific tool from the conversation, example: `/exclude_tool tool_name`
+
 
 You can also press Ctrl+C at any time to quit.
 

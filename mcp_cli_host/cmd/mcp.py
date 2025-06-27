@@ -283,6 +283,51 @@ class Server:
 
         return prompts
     
+    async def get_prompt(
+        self,
+        name: str,
+        arguments: dict[str, str],
+        retries: int = 2,
+        delay: float = 1.0,
+    ) -> types.GetPromptResult:
+        """Read a prompt with retry mechanism.
+
+        Args:
+            name: name of the prompt to read.
+            arguments: arguments for the prompt.
+            retries: Number of retry attempts.
+            delay: Delay between retries in seconds.
+
+        Returns:
+            read prompt result.
+
+        Raises:
+            RuntimeError: If server is not initialized.
+            Exception: If tool execution fails after all retries.
+        """
+        if not self.session:
+            raise RuntimeError(f"Server {self.name} not initialized")
+
+        attempt = 0
+        while attempt < retries:
+            try:
+                log.info(f":📄:read prompt: [{name}]...")
+                result: types.GetPromptResult = await self.session.get_prompt(name, arguments)
+
+                return result
+
+            except Exception as e:
+                attempt += 1
+                log.warning(
+                    f"Error reading resource: {e}. Attempt {attempt} of {retries}."
+                )
+                if attempt < retries:
+                    log.info(f"Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                else:
+                    log.error("Max retries reached. Failing.")
+                    raise
+    
     async def cleanup(self) -> None:
         """Clean up server resources."""
         async with self._cleanup_lock:
