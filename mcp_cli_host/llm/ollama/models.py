@@ -6,7 +6,6 @@ class ollamaMsg(GenericMsg):
     @property
     def content(self) -> Union[str, None]:
         msg_obj = json.loads(self.message_content)
-
         return msg_obj["content"]
     
     @property
@@ -14,7 +13,7 @@ class ollamaMsg(GenericMsg):
         msg_obj = json.loads(self.message_content)
         tool_calls: list[ToolCall] = []
 
-        for call in msg_obj.get("tool_calls", []):
+        for call in msg_obj.get("tool_calls", []) or []:
             call_obj = ToolCall(name=call["function"]["name"],
                                 arguments=call["function"]["arguments"])
             
