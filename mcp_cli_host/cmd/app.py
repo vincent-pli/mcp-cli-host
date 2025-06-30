@@ -252,7 +252,7 @@ class ChatSession:
                         prompt_messages = prompt_result.messages
                         messages_rec = json.dumps(
                             [msg.model_dump() for msg in prompt_messages], indent=2, ensure_ascii=False)
-                        console.print(f"[green]Succeed get prompt from Server: '{server_name}' with name: {target_prompt.name}\n")   
+                        console.print(f"[green]Succeed get prompt from Server: '{server_name}' with name: {target_prompt.name.split(COMMON_SEPERATOR)[1]}\n")   
                         console.print(messages_rec)
                         break
                     except KeyboardInterrupt:
