@@ -4,6 +4,7 @@ from mcp_cli_host.cmd.mcp_client_functions.err_monitor import ERRMonitor
 from mcp_cli_host.cmd.mcp_client_functions.sampling_handler import SamplingCallback
 from mcp_cli_host.cmd.mcp_client_functions.notification_handler import NotificationHandler
 from mcp_cli_host.cmd.mcp_client_functions.roots_handler import RootsCallback
+from mcp_cli_host.cmd.mcp_client_functions.elicitation_handler import ElicitationCallback
 import os
 import json
 from contextlib import AsyncExitStack
@@ -48,7 +49,8 @@ class Server:
                               write,
                               message_handler=NotificationHandler(),
                               sampling_callback=SamplingCallback(provider),
-                              list_roots_callback=RootsCallback(roots) if roots else None
+                              list_roots_callback=RootsCallback(roots) if roots else None,
+                              elicitation_callback=ElicitationCallback()
                             )
             )
 
