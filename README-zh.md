@@ -99,10 +99,14 @@ mcphost -m deepseek:deepseek-chat
 在聊天时，你可以使用：
 - `/help`：显示可用命令
 - `/tools`：列出所有可用工具
+- `/exclude_tool tool_name`: 在对话中去掉某个tool
+- `/resources`: 列出所有resource
+- `/get_resource`: 使用URI获取某个resource, 例如: /get_resource resource_uri
+- `/prompts`: 获取所有的prompt
+- `/get_prompt`: 使用名字，获取某一prompt, 例如: /get_prompt prompt_name
 - `/servers`：列出配置的 MCP 服务器
 - `/history`：显示对话历史
-- `/exclude_tool tool_name`: 在对话中去掉某个tool
-- `Ctrl+C`：任何时候都可以退出
+- `quit`：任何时候都可以退出
 
 ## MCP 服务器兼容性 🔌
 MCPHost 可以与任何符合 MCP 的服务器一起工作。示例和参考实现，请参阅[MCP 服务器库](https://github.com/modelcontextprotocol/servers)。

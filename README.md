@@ -121,10 +121,14 @@ mcpclihost -m deepseek:deepseek-chat
 While chatting, you can use:
 - `/help`: Show available commands
 - `/tools`: List all available tools
+- `/exclude_tool tool_name`: Exclude specific tool from the conversation
+- `/resources`: List all available resources
+- `/get_resource`: Get specific resources by uri, example: /get_resource resource_uri
+- `/prompts`: List all available prompts
+- `/get_prompt`: Get specific prompt by name, example: /get_prompt prompt_name
 - `/servers`: List configured MCP servers
 - `/history`: Display conversation history
-- `/exclude_tool tool_name`: Exclude specific tool from the conversation
-- `Ctrl+C`: Exit at any time
+- `/quit`: Exit at any time
 
 
 ## MCP Server Compatibility 🔌
