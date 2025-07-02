@@ -12,15 +12,15 @@ English | [简体中文](./README-zh.md)
 - Interactive conversations with multipe LLM models
 - Support for multiple concurrent MCP servers
 - Dynamic tool discovery and integration
-- Tool calling capabilities for both model types
 - Configurable MCP server locations and arguments
 - Configurable message history window for context management
 - Monitor/trace error from server side
-- Support sampling, Roots, Resource, Prompts
+- Support Sampling, Roots, Elicitation, retrievling Resource, Prompts
 - Support runtime exclude specific tool
 - Show MCP server card when connected
 
 ## Latest Update 💌
+- [2025-07-2] Support Elicitation
 - [2025-06-27] Deal with `Prompts` in MCP server: [Link](./docs/prompts_usage.md)
 - [2025-06-20] Deal with `Resources` in MCP server: [Link](./docs/resource_templates_implements.md)
 
