@@ -135,6 +135,8 @@ While chatting, you can use:
 
 MCPCliHost can work with any MCP-compliant server. For examples and reference implementations, see the [MCP Servers Repository](https://github.com/modelcontextprotocol/servers).
 
+## Known issues 🐛
+- In scenario of `Sampling` and `Elicitation`, when typing "Ctrl+c", the process will crash with something like `asyncio.exceptions.CancelledError`, will be resolved later.
 
 ## License 📄
 

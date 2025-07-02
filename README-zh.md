@@ -112,5 +112,8 @@ mcphost -m deepseek:deepseek-chat
 ## MCP 服务器兼容性 🔌
 MCPHost 可以与任何符合 MCP 的服务器一起工作。示例和参考实现，请参阅[MCP 服务器库](https://github.com/modelcontextprotocol/servers)。
 
+## 已知问题：🐛
+- 在采样(Sampling)和启发(Elicitation)场景下，当输入"Ctrl+c"时，进程会崩溃并出现类似asyncio.exceptions.CancelledError的错误，该问题将在后续版本中修复。
+
 ## 许可证 📄
 本项目根据 Apache 2.0 许可证发行 - 请参阅[LICENSE](LICENSE)文件以获得详细信息。
