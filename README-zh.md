@@ -14,7 +14,8 @@
 - 当mcp server链接成功后，展示其信息card
 
 ## 最新更新 💌
-- [2025-07-2] 支持Elicitation
+- [2025-07-18] 支持Streamable HTTP mcp server，Oauth还不支持
+- [2025-07-02] 支持Elicitation
 - [2025-06-27] 使用Server的Prompts: [Link](./docs/zh/prompts_usage.md)
 - [2025-06-20] 针对Server的Resource templates的实现和想法: [Link](./docs/zh/resource_templates_implements.md)
 
@@ -48,6 +49,8 @@ pip install mcp-cli-host
 ```
 ## 配置 ⚙️
 MCPCLIHost 将自动在 `~/.mcp.json` 中找到配置文件。你也可以使用 `--config` 标志指定自定义位置：
+
+### STDIO mcp server 例子
 ```json
 {
   "mcpServers": {
@@ -75,6 +78,19 @@ MCPCLIHost 将自动在 `~/.mcp.json` 中找到配置文件。你也可以使用
 - `args`：命令的参数数组：
   - 对于 SQLite 服务器：`mcp-server-sqlite` 并指定数据库路径
   - 对于文件系统服务器：`@modelcontextprotocol/server-filesystem` 并指定目录路径
+
+### 远端mcp server(仅支持Streamable HTTP)例子
+```json
+{
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {"Authorization": "Bearer <your PAT>"}
+    }
+  }
+}
+```
+
 ## 使用 🚀
 MCPCLIHost 是一个 CLI 工具，允许你通过统一的接口与各种 AI 模型进行交互。它支持通过 MCP 服务器的各种工具。
 ### 可用模型

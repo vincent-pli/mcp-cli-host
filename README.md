@@ -20,7 +20,8 @@ English | [简体中文](./README-zh.md)
 - Show MCP server card when connected
 
 ## Latest Update 💌
-- [2025-07-2] Support Elicitation
+- [2025-07-18] Support Streamable HTTP mcp server, OAuth process not support yet
+- [2025-07-02] Support Elicitation
 - [2025-06-27] Deal with `Prompts` in MCP server: [Link](./docs/prompts_usage.md)
 - [2025-06-20] Deal with `Resources` in MCP server: [Link](./docs/resource_templates_implements.md)
 
@@ -60,6 +61,7 @@ pip install mcp-cli-host
 
 MCPCLIHost will automatically find configuration file at `~/.mcp.json`. You can also specify a custom location using the `--config` flag:
 
+### STDIO mcp server
 ```json
 {
   "mcpServers": {
@@ -88,6 +90,18 @@ Each MCP server entry requires:
 - `args`: Array of arguments for the command:
   - For SQLite server: `mcp-server-sqlite` with database path
   - For filesystem server: `@modelcontextprotocol/server-filesystem` with directory path
+
+### Remote mcp server(only support Streamable HTTP)
+```json
+{
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {"Authorization": "Bearer <your PAT>"}
+    }
+  }
+}
+```
 
 ## Usage 🚀
 
