@@ -362,8 +362,10 @@ class ChatSession:
             if not server:
                 raise ValueError(f"Server not found: {server_name}")
 
+            tool = next((
+                tool for tool in self.tools if tool.name == name), None)
             tool_call_res: types.CallToolResult = await server.execute_tool(
-                tool_name=tool_name,
+                tool=tool,
                 arguments=arguments
             )
 

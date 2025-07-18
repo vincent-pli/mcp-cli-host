@@ -37,6 +37,7 @@ mcpclihost -m deepseek:deepseek-chat
 """
 PREFIX_RESOURCE_TOOL = "get_res_tmp_"
 COMMON_SEPERATOR = "--"
+URL_TEMPLATE_KEY = "url_template"
 
 def prune_messages(messages: list[GenericMsg], message_window: int) -> list[GenericMsg]:
     if len(messages) <= message_window:
@@ -144,33 +145,7 @@ def extract_variables_from_uri_template(template: str) -> List[str]:
         parsed = URITemplate(template)
         return list(parsed.variable_names)
     except Exception as e:
-        raise ValueError(f"Invalid URI template: {template}") from e
-
-def encode_uri_template(template: str) -> str:
-    """
-    make URI template to pattern [a-zA-Z0-9_-] type
-    for example: 
-        "user/{id}/detail" → "user_7bid_7d_detail"
-    """
-    # Step 1: transfer {} to _7B_ and _7D_
-    encoded = template.replace("{", "_7B_").replace("}", "_7D_")
-    # Step 2: encode other charactor（ie. / → _2F_）
-    encoded = re.sub(r'([^a-zA-Z0-9_-])', 
-                    lambda m: f"_{ord(m.group(1)):02X}_", 
-                    encoded)
-    return encoded
-
-def decode_uri_template(encoded: str) -> str:
-    """
-    make encoded string to original URI template
-    for example: 
-        "user_7Bid_7D_detail" → "user/{id}/detail"
-    """
-    decoded = encoded.replace("_7B_", "{").replace("_7D_", "}")
-    decoded = re.sub(r'_([0-9A-F]{2})_', 
-                    lambda m: chr(int(m.group(1), 16)), 
-                    decoded)
-    return decoded
+        raise ValueError(f"Invalid URI template: {template}") from e 
 
 def generated_tools_from_resource_templates(
     server_name: str,
@@ -178,16 +153,17 @@ def generated_tools_from_resource_templates(
 ) -> list[types.Tool]:
     """Generate tools from resource templates."""
     tools: list[types.Tool] = []
-    for template in resource_templates:
+    for index, template in enumerate(resource_templates):
         tools.append(
             types.Tool(
-                name=server_name + COMMON_SEPERATOR + PREFIX_RESOURCE_TOOL + encode_uri_template(template.uriTemplate),
-                description=template.description,
+                name=server_name + COMMON_SEPERATOR + PREFIX_RESOURCE_TOOL + str(index),
+                description=template.description if template.description else "Get resource from url:" + template.uriTemplate,
                 inputSchema=build_input_schema(
                     original_uri_template=template.uriTemplate,
                     properties=extract_variables_from_uri_template(
                         template.uriTemplate)
-                )
+                ),
+                meta={URL_TEMPLATE_KEY: template.uriTemplate}, 
             )
         )
 
