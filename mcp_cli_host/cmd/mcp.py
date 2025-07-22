@@ -2,7 +2,7 @@ from mcp import ClientSession, StdioServerParameters, types
 from mcp.shared.exceptions import McpError
 from mcp_cli_host.cmd.stdio_client import stdio_client
 from mcp.client.streamable_http import streamablehttp_client
-from mcp_cli_host.cmd.mcp_client_functions.err_monitor import ERRMonitor
+from mcp_cli_host.cmd.mcp_client_functions.err_monitor import err_monitor
 from mcp_cli_host.cmd.mcp_client_functions.sampling_handler import SamplingCallback
 from mcp_cli_host.cmd.mcp_client_functions.notification_handler import NotificationHandler
 from mcp_cli_host.cmd.mcp_client_functions.roots_handler import RootsCallback
@@ -62,7 +62,7 @@ class Server:
                 read, write, err = stdio_transport
 
                 _ = await self.exit_stack.enter_async_context(
-                    ERRMonitor(err)
+                    err_monitor(err)
                 )
 
             session = await self.exit_stack.enter_async_context(
