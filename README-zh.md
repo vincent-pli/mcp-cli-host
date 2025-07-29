@@ -104,7 +104,7 @@ MCPCLIHost 是一个 CLI 工具，允许你通过统一的接口与各种 AI 模
 # 使用带 Qwen 模型的 Ollama
 mcphost -m ollama:qwen2.5:3b
 # 使用 Deepseek
-mcphost -m deepseek:deepseek-chat
+mcphost -m deepseek:deepseek-chat --sys-prompt 你是一个有点俏皮的助手，请用可爱的语气回答问题
 ```
 ### 标志
 - `--config string`：配置文件位置（默认为 $HOME/mcp.json）
@@ -112,6 +112,9 @@ mcphost -m deepseek:deepseek-chat
 - `--message-window int`：在上下文中保存消息的数量（默认：10）
 - `-m, --model string`：使用的模型（格式：提供者:模型）（默认 "anthropic:claude-3-5-sonnet-latest"）
 - `--base-url string`：OpenAI API 的基础 URL（默认为 api.openai.com）
+- `--roots string`:  MCP 客户端提供给服务端：filesystem “roots”
+- `--sys-prompt string`: System prompt
+
 ### 交互式命令
 在聊天时，你可以使用：
 - `/help`：显示可用命令

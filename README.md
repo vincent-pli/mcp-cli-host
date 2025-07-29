@@ -120,7 +120,7 @@ Models can be specified using the `--model` (`-m`) flag:
 mcpclihost -m ollama:qwen2.5:3b
 
 # Use Deepseek
-mcpclihost -m deepseek:deepseek-chat
+mcpclihost -m deepseek:deepseek-chat --sys-prompt You're a slightly playful assistant, please answer questions in a cute tone!
 ```
 
 ### Flags
@@ -129,6 +129,8 @@ mcpclihost -m deepseek:deepseek-chat
 - `--message-window int`: Number of messages to keep in context (default: 10)
 - `-m, --model string`: Model to use (format: provider:model) (default "anthropic:claude-3-5-sonnet-latest")
 - `--base-url string`: Base URL for OpenAI API (defaults to api.openai.com)
+- `--roots string`:  MCP clients to expose filesystem “roots” to servers
+- `--sys-prompt string`: System prompt
 
 ### Interactive Commands
 
