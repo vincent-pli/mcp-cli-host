@@ -39,14 +39,20 @@ PREFIX_RESOURCE_TOOL = "get_res_tmp_"
 COMMON_SEPERATOR = "--"
 URL_TEMPLATE_KEY = "url_template"
 
-def prune_messages(messages: list[GenericMsg], message_window: int) -> list[GenericMsg]:
+def prune_messages(messages: list[GenericMsg], message_window: int, has_sys_prompt: bool = False) -> list[GenericMsg]:
     if len(messages) <= message_window:
         return messages
 
-    if not messages[0].toolcalls:
-        return messages[1:]
+    removed_count = len(messages) - message_window
+    if has_sys_prompt:
+        messages = messages[:1] + messages[1 + removed_count:]
     else:
-        return messages[2:]
+        messages = messages[removed_count:]
+    # After remove, If the first message is a toolcall result, we need to remove the next message as well
+    if messages[0].is_tool_res():
+        messages = messages[1:]
+
+    return messages
 
 
 SERVER_CARD = """

@@ -32,6 +32,7 @@ class ChatSession:
                  message_window: int = 10,
                  debug_model: bool = False,
                  roots: list[str] = None,
+                 sys_prompt: str = None
                  ) -> None:
         self.model = model
         self.server_conf_path = server_conf_path
@@ -41,12 +42,22 @@ class ChatSession:
         self.servers: dict[str, Server] = None
         self.history_message: list[GenericMsg] = []
         self.roots = roots
+        self.sys_prompt = sys_prompt
         self.tools: list[types.Tool] = []
         self.resource_tools: list[types.Tool] = []
         self.excluded_tools: list[str] = []
         self.initialize_results: dict[str, types.InitializeResult] = {}
         self.resources = defaultdict(list)
         self.prompts: list[types.Prompt] = []
+        # Put system prompt on the top of the history if exists
+        if self.sys_prompt:
+            sys_prompt_message = {
+                "role": Role.SYSTEM.value,
+                "content": self.sys_prompt
+            }
+            self.history_message.append(
+                GenericMsg(message_content=json.dumps(sys_prompt_message))
+            )
 
     async def handle_slash_command(self, prompt: str) -> Union[
         Tuple[Literal[True], None],
@@ -528,7 +539,9 @@ class ChatSession:
         try:
             while True:
                 try:
-                    self.history_message = prune_messages(self.history_message, self.message_window)
+                    print("xxxxxxxx")
+                    print(len(self.history_message))
+                    self.history_message = prune_messages(self.history_message, self.message_window, True if self.sys_prompt else False)
                     user_input = console.input(
                         "[bold magenta]Enter your prompt (Type /help for commands, Ctrl+C to quit)[/bold magenta]\n")
                     
@@ -575,6 +588,8 @@ async def main() -> None:
                         help="base URL for OpenAI API (defaults to api.openai.com)")
     parser.add_argument('--roots', required=False, nargs='*',
                         help="clients to expose filesystem “roots” to servers")
+    parser.add_argument('--sys-prompt', required=False,
+                        help="system prompts to expose to clients")
     args = parser.parse_args()
 
     rich_handler = RichHandler(show_path=False, show_time=False, omit_repeated_times=False, show_level=True, highlighter=NullHighlighter(), rich_tracebacks=True)
@@ -596,7 +611,8 @@ async def main() -> None:
             openai_url=args.base_url,
             message_window=args.message_window,
             debug_model=args.debug,
-            roots=args.roots)
+            roots=args.roots,
+            sys_prompt=args.sys_prompt)
         
         await chat_session.run_mcp_host()
     except Exception as e:
