@@ -539,8 +539,6 @@ class ChatSession:
         try:
             while True:
                 try:
-                    print("xxxxxxxx")
-                    print(len(self.history_message))
                     self.history_message = prune_messages(self.history_message, self.message_window, True if self.sys_prompt else False)
                     user_input = console.input(
                         "[bold magenta]Enter your prompt (Type /help for commands, Ctrl+C to quit)[/bold magenta]\n")
