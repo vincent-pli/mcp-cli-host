@@ -1,10 +1,8 @@
 from pydantic import BaseModel
-from typing import Literal
 from enum import Enum
 from typing import Union, Any, Optional
 from abc import ABC
 import json
-from mcp import types
 
 class Role(Enum):
     USER = 'user'
