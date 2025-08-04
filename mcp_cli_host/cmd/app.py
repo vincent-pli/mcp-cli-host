@@ -1,3 +1,4 @@
+from mcp_cli_host.llm.gemini.provider import Gemini
 from mcp_cli_host.llm.models import GenericMsg
 from mcp_cli_host.llm.azure.provider import Azure
 from mcp_cli_host.llm.openai.provider import Openai
@@ -455,6 +456,14 @@ class ChatSession:
         elif provider == "ollama":
             return Ollama(model=model)
 
+        elif provider == "gemini":
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+            if api_key == "":
+                raise ValueError(
+                    'Environment variable GEMINI_API_KEY not found or its value is empty.')
+            
+            return Gemini(model=model)
+        
         raise ValueError(
             "Unsupport provider: {provider}, should be in ['openai', 'azure', 'ollama', 'deepseek']")
 

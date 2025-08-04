@@ -7,8 +7,8 @@ class azureMsg(GenericMsg):
     def content(self) -> Union[str, None]:
         msg_obj = json.loads(self.message_content)
 
-        return msg_obj["content"]
-    
+        return msg_obj.get("content", None)
+
     @property
     def toolcalls(self) -> list[ToolCall]:
         msg_obj = json.loads(self.message_content)
