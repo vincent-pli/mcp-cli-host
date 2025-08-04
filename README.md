@@ -51,6 +51,11 @@ export AZURE_OPENAI_API_KEY='your-azure-openai-api-key'
 export AZURE_OPENAI_API_VERSION='your-azure-openai-api-version'
 export AZURE_OPENAI_ENDPOINT='your-azure-openai-endpoint'
 ```
+4. For Google Gemini
+```bash
+export GEMINI_API_KEY='your-gemini-api-token'
+```
+
 ## Installation 📦
 
 ```bash
@@ -113,6 +118,7 @@ Models can be specified using the `--model` (`-m`) flag:
 - OpenAI: `openai:gpt-4`
 - Ollama models: `ollama:modelname`
 - Azure Openai: `azure:gpt-4-0613`
+- Gemini: `gemini:gemini-2.5-flash`
 
 ### Examples
 ```bash

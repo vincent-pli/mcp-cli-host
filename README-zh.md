@@ -43,6 +43,10 @@ export AZURE_OPENAI_API_KEY='your-azure-openai-api-key'
 export AZURE_OPENAI_API_VERSION='your-azure-openai-api-version'
 export AZURE_OPENAI_ENDPOINT='your-azure-openai-endpoint'
 ```
+4. 对于 Google Gemini
+```bash
+export GEMINI_API_KEY='your-gemini-api-token'
+```
 ## 安装 📦
 ```bash
 pip install mcp-cli-host
@@ -99,6 +103,7 @@ MCPCLIHost 是一个 CLI 工具，允许你通过统一的接口与各种 AI 模
 - OpenAI：`openai:gpt-4`
 - Ollama 模型：`ollama:modelname`
 - Azure Openai：`azure:gpt-4-0613`
+- Gemini: `gemini:gemini-2.5-flash`
 ### 示例
 ```bash
 # 使用带 Qwen 模型的 Ollama
