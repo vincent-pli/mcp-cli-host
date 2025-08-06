@@ -6,6 +6,7 @@ from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE
 import logging
 from typing import Dict, Union, Tuple
 import re
+import readline  # noqa: F401
 
 console = Console()
 log = logging.getLogger("mcp_cli_host")

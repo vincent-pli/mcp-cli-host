@@ -7,6 +7,7 @@ from rich.console import Console
 from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE
 from mcp_cli_host.llm.models import GenericMsg, Role
 import logging
+import readline  # noqa: F401
 
 console = Console()
 log = logging.getLogger("mcp_cli_host")

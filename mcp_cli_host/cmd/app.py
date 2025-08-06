@@ -21,6 +21,7 @@ from rich.markdown import Markdown
 import traceback
 from collections import defaultdict
 from typing import Tuple, Union, List, Literal
+import readline  # noqa: F401
 
 log = logging.getLogger("mcp_cli_host")
 

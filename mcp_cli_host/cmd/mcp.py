@@ -18,6 +18,7 @@ from rich.console import Console
 from pydantic import AnyUrl, BaseModel, AnyHttpUrl
 from mcp_cli_host.cmd.utils import COMMON_SEPERATOR, PREFIX_RESOURCE_TOOL, URL_TEMPLATE_KEY
 from datetime import timedelta
+import readline  # noqa
 
 console = Console()
 
