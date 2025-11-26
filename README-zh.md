@@ -12,8 +12,10 @@
 - 支持sampling, Roots, Elicitation, Resources, Prompts
 - 支持对话中去掉某个tool
 - 当mcp server链接成功后，展示其信息card
+- 支持展示tool call返回的图片
 
 ## 最新更新 💌
+- [2025-11-26] 支持展示tool call返回的图片
 - [2025-07-18] 支持Streamable HTTP mcp server，Oauth还不支持
 - [2025-07-02] 支持Elicitation
 - [2025-06-27] 使用Server的Prompts: [Link](./docs/zh/prompts_usage.md)

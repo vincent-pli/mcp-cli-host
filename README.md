@@ -18,8 +18,10 @@ English | [简体中文](./README-zh.md)
 - Support Sampling, Roots, Elicitation, retrievling Resource, Prompts
 - Support runtime exclude specific tool
 - Show MCP server card when connected
+- display image from tool call output
 
 ## Latest Update 💌
+- [2025-11-26] Support display image from tool call output
 - [2025-07-18] Support Streamable HTTP mcp server, OAuth process not support yet
 - [2025-07-02] Support Elicitation
 - [2025-06-27] Deal with `Prompts` in MCP server: [Link](./docs/prompts_usage.md)
