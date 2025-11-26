@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Union, Any, Optional
 from abc import ABC
 import json
+from mcp import types
 
 class Role(Enum):
     USER = 'user'
@@ -22,7 +23,7 @@ class TextContent(BaseModel):
 class CallToolResultWithID(BaseModel):
     tool_call_id: Optional[str] = None
     name: str
-    content: list[TextContent]
+    content: list[types.ContentBlock]
     isError: bool = False
 
 class GenericMsg(BaseModel, ABC):
@@ -47,6 +48,12 @@ class GenericMsg(BaseModel, ABC):
 
     def is_tool_res(self):
         return not isinstance(self.message_content, str)
+    
+    def is_tool_res_image(self):
+        return not isinstance(self.message_content, str) and self.message_content and self.message_content[-1].content and isinstance(self.message_content[-1].content[-1], types.ImageContent)
+    
+    def is_tool_res_audio(self):
+        return not isinstance(self.message_content, str) and self.message_content and self.message_content[-1].content and isinstance(self.message_content[-1].content[-1], types.AudioContent)
 
 
 

@@ -6,6 +6,8 @@ import os
 from server_require_sampling.utils import file_url_to_path
 from pathlib import Path
 import time
+import base64
+import sys
 
 
 async def generate_story(
@@ -144,6 +146,21 @@ async def build_table_user_info(
     if result.action == "cancel":
         return [types.TextContent(type='text', text="user cancel the information request, then get nothing")]
 
+async def create_image(
+    prompt: str,
+    server: Server
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    image_path = Path(__file__).parent.parent.parent/'test.jpeg'
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+        base64_encoded = base64.b64encode(image_data).decode('utf-8')
+
+    return [types.ImageContent(
+        type="image",
+        mimeType="image/png",
+        data=base64_encoded,
+    )]
+
 @click.command()
 @click.option("--port", default=8000, help="Port to listen on for SSE")
 @click.option(
@@ -159,7 +176,7 @@ def main(port: int, transport: str) -> int:
     async def fetch_tool(
         name: str, arguments: dict
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-        if name != "fetch" and name != "create" and name != "build":
+        if name != "fetch" and name != "create" and name != "build" and name != "create_image":
             raise ValueError(f"Unknown tool: {name}")
         if name == "fetch":
             if "prompt" not in arguments:
@@ -174,6 +191,10 @@ def main(port: int, transport: str) -> int:
             if "prompt" not in arguments:
                 raise ValueError("Missing required argument 'promot'")
             return await build_table_user_info(arguments["prompt"], app)
+        if name == "create_image":
+            if "prompt" not in arguments:
+                raise ValueError("Missing required argument 'promot'")
+            return await create_image(arguments["prompt"], app)
 
     @app.list_tools()
     async def list_tools() -> list[types.Tool]:
@@ -222,8 +243,22 @@ def main(port: int, transport: str) -> int:
                             "description": "content of the file",
                         }
                     },
+                },    
+            ),
+            types.Tool(
+                name="create_image",
+                description="create an image from user's prompt",
+                inputSchema={
+                    "type": "object",
+                    "required": ["prompt"],
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "a short description about the image",
+                        }
+                    },
                 },
-            )
+            ),
         ]
 
     if transport == "sse":

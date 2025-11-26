@@ -5,7 +5,7 @@ from mcp_cli_host.llm.openai.provider import Openai
 from mcp_cli_host.llm.deepseek.provider import Deepseek
 from mcp_cli_host.llm.ollama.provider import Ollama
 from mcp_cli_host.llm.base_provider import Provider
-from mcp_cli_host.llm.models import Role, CallToolResultWithID, TextContent
+from mcp_cli_host.llm.models import Role, CallToolResultWithID
 from mcp_cli_host.cmd.mcp import load_mcp_config, Server
 from mcp_cli_host.console import console
 from mcp_cli_host.cmd.utils import CLEAR_RIGHT, PREV_LINE, MARKDOWN, prune_messages, format_server_card, generated_tools_from_resource_templates, COMMON_SEPERATOR
@@ -21,6 +21,9 @@ from rich.markdown import Markdown
 import traceback
 from collections import defaultdict
 from typing import Tuple, Union, List, Literal
+from textual_image.renderable import Image
+import base64
+from io import BytesIO
 import readline  # noqa: F401
 
 log = logging.getLogger("mcp_cli_host")
@@ -335,33 +338,62 @@ class ChatSession:
                 GenericMsg(message_content=json.dumps(msg)) for msg in messages
             ])
 
-        with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
-            try:
-                llm_res: GenericMsg = provider.completions_create(
-                    prompt=prompt,
-                    messages=self.history_message,
-                    tools=self.tools,
-                )
-            except Exception:
-                raise
+        if not self.history_message[-1].is_tool_res_image() and not self.history_message[-1].is_tool_res_audio():
+            with console.status("[bold bright_magenta]Thinking...[/bold bright_magenta]"):
+                try:
+                    llm_res: GenericMsg = provider.completions_create(
+                        prompt=prompt,
+                        messages=self.history_message,
+                        tools=self.tools,
+                    )
+                except Exception:
+                    raise
 
-        if llm_res and llm_res.usage:
-            input_token, output_token = llm_res.usage
-            log.info(
-                f"Token usage statistics: Input: {input_token}, Output: {output_token}")
+            if llm_res and llm_res.usage:
+                input_token, output_token = llm_res.usage
+                log.info(
+                    f"Token usage statistics: Input: {input_token}, Output: {output_token}")
 
-        if not llm_res:
-            log.warning("LLM response nothing, try again")
-            return
+            if not llm_res:
+                log.warning("LLM response nothing, try again")
+                return
 
-        # Push response from LLM, could be tool_calls or just text
-        self.history_message.append(llm_res)
-        if llm_res.content and not llm_res.toolcalls:
+            # Push response from LLM, could be tool_calls or just text
+            self.history_message.append(llm_res)
+            if llm_res.content and not llm_res.toolcalls:
+                console.print("\n 🤖 [bold bright_yellow]Assistant[/bold bright_yellow]:\n")
+                console.print(Markdown(llm_res.content))
+                console.print("\n")
+                return
+        else:
+            llm_res = self.history_message.pop()
             console.print("\n 🤖 [bold bright_yellow]Assistant[/bold bright_yellow]:\n")
-            console.print(Markdown(llm_res.content))
+            if llm_res.is_tool_res_image():
+                for res in llm_res.message_content:
+                    for content in res.content:
+                        if isinstance(content, types.ImageContent):  
+                            image_bytes = base64.b64decode(content.data)
+                            byte_stream = BytesIO(image_bytes)
+                            console.print(Image(byte_stream))
+            if llm_res.is_tool_res_audio():
+                pass  # TODO
             console.print("\n")
-            return
 
+            # Remove the image content and add back to history message to avoid erro:
+            # "An assistant message with 'tool_calls' must be followed by tool messages responding to each 'tool_call_id'. (insufficient tool messages following tool_calls message)"
+            for res in llm_res.message_content:
+                non_text_contents: list[types.ContentBlock] = []
+                for content in res.content:
+                    if isinstance(content, types.ImageContent) or isinstance(content, types.AudioContent):
+                        content = types.TextContent(
+                            type="text",
+                            text="an image/audio content is generated, please check the previous output."
+                        )
+                        non_text_contents.append(content)
+                res.content = non_text_contents
+            self.history_message.append(llm_res)
+            return
+        
         tool_call_results: list[CallToolResultWithID] = []
         for tool_call in llm_res.toolcalls:
             id = tool_call.id
@@ -386,17 +418,10 @@ class ChatSession:
                 log.warning(
                     f"Error executing tool: {tool_name}, error is: {tool_call_res.content}")
 
-            contents: list[TextContent] = []
-            for content in tool_call_res.content:
-                contents.append(TextContent(
-                    type=content.type,
-                    text=content.text
-                ))
-
             result = CallToolResultWithID(
                 tool_call_id=id,
                 name=name,
-                content=contents,
+                content=tool_call_res.content,
                 isError=tool_call_res.isError
             )
 
